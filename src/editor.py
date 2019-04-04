@@ -6,6 +6,10 @@ import tkinter as tk
 from collections import defaultdict
 
 class Editor():	
+	CURSOR_SELECT = 1
+	CURSOR_DRAW = 2
+	CURSOR_ERASE = 3
+
 	def __init__(self):
 		self.r = self.init()
 
@@ -17,10 +21,7 @@ class Editor():
 		self.initToolbar(r)
 		self.initEditMenu(r)
 		self.initTilemap(r)
-
-		# Vars:
-		# self.editMode
-		# self.editObject
+		self.initScrollers(r)
 		return r
 
 	def initMenu(self, r):
@@ -42,11 +43,13 @@ class Editor():
 	def initToolbar(self, r):
 		toolbar = tk.Frame(r)
 		toolbar.pack(anchor='w')
-		selectButton = tk.Button(toolbar, text='Select')
+
+		cursorState = tk.IntVar()
+		selectButton = tk.Radiobutton(toolbar, variable=cursorState, text='Select', value=self.CURSOR_SELECT)
 		selectButton.pack(side=tk.LEFT)
-		drawButton = tk.Button(toolbar, text='Draw')
+		drawButton = tk.Radiobutton(toolbar, variable=cursorState, text='Draw', value=self.CURSOR_DRAW)
 		drawButton.pack(side=tk.LEFT)
-		eraseButton = tk.Button(toolbar, text='Erase')
+		eraseButton = tk.Radiobutton(toolbar, variable=cursorState, text='Erase', value=self.CURSOR_ERASE)
 		eraseButton.pack(side=tk.LEFT)
 		saveButton = tk.Button(toolbar, text='Save')
 		saveButton.pack(side=tk.LEFT)
@@ -67,7 +70,7 @@ class Editor():
 		lists.pack(anchor='w')
 
 	def initTilemap(self, r):
-		tmFrame = tk.Frame(r)
+		# tmFrame = tk.Frame(r)
 		# tmFrame.grid_rowconfigure(0, weight=1)
 		# tmFrame.grid_columnconfigure(0, weight=1)
 
@@ -78,10 +81,24 @@ class Editor():
 		# yScroll.grid(row=0, column=1, sticky="ns")
 
 		# tm = CanvasWindow(r, cellSize=16, bd=0, xscrollcommand=xScroll.set, yscrollcommand=yScroll.set)
-		# tm.grid(fill=tk.BOTH, expand=tk.YES, row=0, column=0, sticky="nsew")
+		# tm.grid(row=0, column=0, sticky="nsew")
 
-		tm = CanvasWindow(r, cellSize=16)
-		tm.pack(fill=tk.BOTH, expand=tk.YES)
+		# tmFrame.pack()
+
+		self.tm = CanvasWindow(r, cellSize=16)
+		self.tm.pack(fill=tk.BOTH, expand=tk.YES)
+
+	def initScrollers(self, r):
+		frame = tk.Frame(r)
+		frame.pack()
+		leftButton = tk.Button(frame, text='←', command=self.tm.moveLeft)
+		leftButton.pack(side=tk.LEFT)
+		rightButton = tk.Button(frame, text='→', command=self.tm.moveRight)
+		rightButton.pack(side=tk.LEFT)
+		upButton = tk.Button(frame, text='↑', command=self.tm.moveUp)
+		upButton.pack(side=tk.LEFT)
+		downButton = tk.Button(frame, text='↓', command=self.tm.moveDown)
+		downButton.pack(side=tk.LEFT)
 
 	def main(self):
 		self.r.mainloop()
@@ -125,7 +142,9 @@ class CanvasWindow(tk.Canvas):
 		self.anchor = Point(-self.nCols // 2, -self.nRows // 2)
 		self.graph = Graph()
 
-		self.cells = [[Cell(self, self.anchor.x + i, self.anchor.y + j, cellSize, self.graph.grid) for i in range(self.nCols)] for j in range(self.nRows)]
+		self.cells = [[Cell(self, i, j, cellSize, self.anchor, self.graph.grid) for i in range(self.nCols)] for j in range(self.nRows)]
+
+		self.selected = None		
 
 		self.bind("<Configure>", self.on_resize)
 
@@ -133,7 +152,7 @@ class CanvasWindow(tk.Canvas):
 
 	def updateCells(self):
 		self.nRows, self.nCols = self.height // self.cellSize, self.width // self.cellSize
-		self.cells = [[Cell(self, self.anchor.x + i, self.anchor.y + j, self.cellSize, self.graph.grid) for i in range(self.nCols)] for j in range(self.nRows)]
+		self.cells = [[Cell(self, i, j, self.cellSize, self.anchor, self.graph.grid) for i in range(self.nCols)] for j in range(self.nRows)]
 
 	# TODO: redraw grid on scrolling
 
@@ -154,13 +173,31 @@ class CanvasWindow(tk.Canvas):
 			for cell in row:
 				cell.draw()
 
+	def moveUnit(self, delta):
+		self.anchor += delta
+		self.updateCells()
+		self.delete("all")
+		self.display()
+
+	def moveLeft(self):
+		self.moveUnit(Point(-1, 0))
+
+	def moveRight(self):
+		self.moveUnit(Point(1, 0))
+
+	def moveDown(self):
+		self.moveUnit(Point(0, 1))
+
+	def moveUp(self):
+		self.moveUnit(Point(0, -1))
+
 class Cell():
 	TRACK_COLOR_BG = '#9ffca2'
 	EMPTY_COLOR_BG = 'white'
 	TRACK_COLOR_BORDER = '#9ffca2'
 	EMPTY_COLOR_BORDER = 'black'
 
-	def __init__(self, master, x, y, size, grid):
+	def __init__(self, master, x, y, size, anchor, grid):
 		""" 
 		Constructor of the object called by Cell(...) 
 		"""
@@ -169,14 +206,16 @@ class Cell():
 		self.x = x
 		self.y = y
 		self.size = size
+		self.anchor = anchor
 	# TODO: draw correct tile
 	def draw(self):
 		""" order to the cell to draw its representation on the canvas """
+		gridPoint = self.anchor + Point(self.x, self.y)
 		if self.master != None :
 			fill = Cell.TRACK_COLOR_BG
 			outline = Cell.EMPTY_COLOR_BORDER
 
-			if not self.grid.get(Point(self.x, self.y)):
+			if not self.grid.get(gridPoint):
 				fill = Cell.EMPTY_COLOR_BG
 				outline = Cell.EMPTY_COLOR_BORDER
 
