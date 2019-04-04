@@ -1,4 +1,7 @@
 
+from src.maps import Graph
+from src.maps import Point
+
 import tkinter as tk
 from collections import defaultdict
 
@@ -9,7 +12,7 @@ class Editor():
 	def init(self):
 		r = tk.Tk()
 		r.title('Level Editor')
-		# r.geometry("600x400")	
+		r.geometry("800x600")	
 		self.initMenu(r)
 		self.initToolbar(r)
 		self.initEditMenu(r)
@@ -64,9 +67,21 @@ class Editor():
 		lists.pack(anchor='w')
 
 	def initTilemap(self, r):
-		tm = CanvasWindow(r, width=850, height=400)
-		tm.pack(fill=tk.BOTH, expand=tk.YES)
+		tmFrame = tk.Frame(r)
+		# tmFrame.grid_rowconfigure(0, weight=1)
+		# tmFrame.grid_columnconfigure(0, weight=1)
 
+		# xScroll = tk.Scrollbar(tmFrame, orient=tk.HORIZONTAL)
+		# xScroll.grid(row=1, column=0, sticky="ew")
+
+		# yScroll = tk.Scrollbar(tmFrame, orient=tk.VERTICAL)
+		# yScroll.grid(row=0, column=1, sticky="ns")
+
+		# tm = CanvasWindow(r, cellSize=16, bd=0, xscrollcommand=xScroll.set, yscrollcommand=yScroll.set)
+		# tm.grid(fill=tk.BOTH, expand=tk.YES, row=0, column=0, sticky="nsew")
+
+		tm = CanvasWindow(r, cellSize=16)
+		tm.pack(fill=tk.BOTH, expand=tk.YES)
 
 	def main(self):
 		self.r.mainloop()
@@ -100,36 +115,74 @@ class DepLists(tk.Frame):
 			menu.add_command(label=key, command=lambda val=key: self.var_b.set(val))
 
 class CanvasWindow(tk.Canvas):
-	def __init__(self, parent, **kwargs):
-		tk.Canvas.__init__(self, parent, **kwargs)
-		self.bind("<Configure>", self.on_resize)
-		self.height = self.winfo_reqheight()
-		self.width = self.winfo_reqheight()
-
-	def on_resize(self, event):
-		# wscale = float(event.width) / self.width
-		# hscale = float(event.height) / self.height
-		# self.width = event.width
-		# self.height = event.height
-		# self.config(width=self.width, height=self.height)
-		# self.scale("all", 0, 0, wscale, hscale)
-		pass
-
-# class Cell():
-# 	TRACK_COLOR_BG = '#9ffca2'
-# 	EMPTY_COLOR_BG = 'white'
-# 	CONNECTED_COLOR_BORDER = '#9ffca2'
-# 	EMPTY_COLOR_BORDER = 'black'
-
-# 	def __init__(self):
-# 		pass
+	def __init__(self, master, cellSize, *args, **kwargs):
+		tk.Canvas.__init__(self, master, *args, **kwargs)
+		self.cellSize = cellSize
+		self.height, self.width = super().winfo_reqheight(), super().winfo_reqwidth()
+		self.nRows, self.nCols = self.height // self.cellSize, self.width // self.cellSize
 
 
-
-
-class Tilemap():
-	def __init__(self, width, height):
-		self.cells = [[None for i in range(width)] for j in range(height)]
+		self.anchor = Point(-self.nCols // 2, -self.nRows // 2)
 		self.graph = Graph()
 
+		self.cells = [[Cell(self, self.anchor.x + i, self.anchor.y + j, cellSize, self.graph.grid) for i in range(self.nCols)] for j in range(self.nRows)]
 
+		self.bind("<Configure>", self.on_resize)
+
+		self.display()
+
+	def updateCells(self):
+		self.nRows, self.nCols = self.height // self.cellSize, self.width // self.cellSize
+		self.cells = [[Cell(self, self.anchor.x + i, self.anchor.y + j, self.cellSize, self.graph.grid) for i in range(self.nCols)] for j in range(self.nRows)]
+
+	# TODO: redraw grid on scrolling
+
+	# Redraw grid on resizing
+	def on_resize(self, event):
+		wscale = float(event.width) / self.width
+		hscale = float(event.height) / self.height
+		self.width = event.width
+		self.height = event.height
+		self.config(scrollregion=self.bbox(tk.ALL))
+		self.scale("all", 0, 0, wscale, hscale)
+		self.updateCells()
+		self.delete("all")
+		self.display()
+
+	def display(self):
+		for row in self.cells:
+			for cell in row:
+				cell.draw()
+
+class Cell():
+	TRACK_COLOR_BG = '#9ffca2'
+	EMPTY_COLOR_BG = 'white'
+	TRACK_COLOR_BORDER = '#9ffca2'
+	EMPTY_COLOR_BORDER = 'black'
+
+	def __init__(self, master, x, y, size, grid):
+		""" 
+		Constructor of the object called by Cell(...) 
+		"""
+		self.master = master
+		self.grid = grid
+		self.x = x
+		self.y = y
+		self.size = size
+	# TODO: draw correct tile
+	def draw(self):
+		""" order to the cell to draw its representation on the canvas """
+		if self.master != None :
+			fill = Cell.TRACK_COLOR_BG
+			outline = Cell.EMPTY_COLOR_BORDER
+
+			if not self.grid.get(Point(self.x, self.y)):
+				fill = Cell.EMPTY_COLOR_BG
+				outline = Cell.EMPTY_COLOR_BORDER
+
+			xmin = self.x * self.size
+			xmax = xmin + self.size
+			ymin = self.y * self.size
+			ymax = ymin + self.size
+
+			self.master.create_rectangle(xmin, ymin, xmax, ymax, fill = fill, outline = outline)

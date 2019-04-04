@@ -18,7 +18,7 @@ CURVE_LEFT = 1
 CURVE_RIGHT = -1
 
 def nextDir(direction, turns):
-	return (direction + spaces) % 4
+	return (direction + turns) % 4
 
 class Point():
 	def __init__(self, x=None, y=None):
@@ -27,6 +27,9 @@ class Point():
 
 	def __add__(self, p2):
 		return Point(self.x + p2.x, self.y + p2.y)
+
+	def __eq__(self, other):
+		return self.x == other.x and self.y == other.y
 
 	def nthPoint(self, direction, length):
 		if direction == DIR_UP:
@@ -38,9 +41,15 @@ class Point():
 		else:
 			return Point(self.x + length, self.y)
 
+	def __hash__(self):
+		return hash((self.x, self.y))
+
+	def __repr__(self):
+		return "(" + str(self.x) + ", " + str(self.y) + ")"
+
 # This is a linked list node for each piece
 class Piece():
-	def __init__(self, pos, grid):
+	def __init__(self, pos):
 		self.next = [None for i in range(4)]
 		self.pos = pos
 
@@ -56,15 +65,15 @@ class Piece():
 		return None
 
 class Edge(Piece):
-	def __init__(self, pos, grid):
-		Piece.__init__(pos, grid)
+	def __init__(self, pos):
+		Piece.__init__(self, pos)
 
 	def addCellsToGrid(self, grid):
-		grid[pos].append(self)
+		grid[self.pos].append(self)
 
 class Node(Piece):
 	def __init__(self, pos, grid, kind=NODE_NONSWITCH, nEntries=NODE_3WAY, orient=DIR_UP):
-		Piece.__init__(pos, grid)
+		Piece.__init__(self, pos)
 		self.kind = kind
 		self.nEntries = nEntries
 		self.orient = orient
@@ -108,16 +117,21 @@ class Node(Piece):
 		# 	if self.kind == NODE_NONSWITCH and self.orient == 
 		# 	self.orient = nextDir(self.orient, turnInc)
 
-
 class Graph():
-	def __init__(self, pos):
+	def __init__(self, pos=Point(0, 0)):
 		self.currPos = pos
 		self.grid = defaultdict(list)
-		self.currPiece = Node(self.pos, self.grid)
 		self.currDirection = DIR_RIGHT
-		self.addTrack(DIR_RIGHT).addUnit(DIR_RIGHT)
+		self.init()
 
-	def addTrack(self, direction, curve=CURVE_NONE):
+	def init(self):
+		e = Edge(self.currPos)
+		e.addCellsToGrid(self.grid)
+		self.currPiece = e
+		self.addTrack()
+		self.addTrack()
+
+	def addTrack(self, curve=CURVE_NONE):
 		# make sure you aren't adding space b/w 2 nodes
 		assert(self.currPiece.getNext(self.currDirection) is None), "Can't add piece on closed track"
 
@@ -129,18 +143,20 @@ class Graph():
 
 		# if there's a node there already...
 		space = self.grid.get(posNext)
-		if len(space) == 1 and type(space[0]) is Node:
+		if space and len(space) == 1 and type(space[0]) is Node:
 			assert(space.pos != posNext), "Can't place track on top of node"
 			# merge it with the node
 			self.linkPiece(space)
 		else:
-			self.currPiece.next[self.currDirection] = Edge(posNext, self.grid)
+			e = Edge(posNext)
+			self.linkPiece(e)
+			e.addCellsToGrid(self.grid)
 
 		self.goToNext()
 
 	def linkPiece(self, nextPiece):
 		self.currPiece.next[self.currDirection] = nextPiece
-		nextPiece.next[nextDir(self.currDirection, 2)] = self
+		nextPiece.next[nextDir(self.currDirection, 2)] = self.currPiece
 
 	def goToNext(self):
 		assert(self.currPiece.getNext(self.currDirection) is not None), "You can't move to an empty piece"
