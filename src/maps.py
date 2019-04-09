@@ -137,6 +137,7 @@ class Graph():
 
 		if curve:
 			self.addCurve(curve)
+			self.goToNext()
 			return
 
 		posNext = self.currPos.nthPoint(self.currDirection, 1)
@@ -175,13 +176,12 @@ class Graph():
 		curveNode = Node(nodePos, self.grid, NODE_NONSWITCH)
 
 		# Add curve node's spaces to the grid
-		self.grid[self.currPos.nthPoint(self.currDirection, 1)].add(curveNode)
-		self.grid[nodePos.nthPoint(nextDir(self.currDirection, curve), 1)].add(curveNode)
+		self.grid[self.currPos.nthPoint(self.currDirection, 1)].append(curveNode)
+		self.grid[nodePos].append(curveNode)
+		self.grid[nodePos.nthPoint(nextDir(self.currDirection, curve), 1)].append(curveNode)
 
 		# Link curve node to current node
 		self.currPiece.next[self.currDirection] = curveNode
-
-		self.goToNext()
 
 	def curveValidityCheck(self, curve):
 		posNext = self.currPos.nthPoint(self.currDirection, 1)
@@ -207,4 +207,9 @@ class Graph():
 
 	def rotateNode(self, node, clockwise=True):
 		pass
+
+	def getNewDirection(self):
+		if self.currPiece.getNext(self.currDirection):
+			return
+		return nextDir([i for i,val in enumerate(self.currPiece.next) if val is not None][0], 2)
 
