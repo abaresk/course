@@ -28,6 +28,9 @@ class Point():
 	def __add__(self, p2):
 		return Point(self.x + p2.x, self.y + p2.y)
 
+	def __sub__(self, p2):
+		return Point(self.x - p2.x, self.y - p2.y)
+
 	def __eq__(self, other):
 		return self.x == other.x and self.y == other.y
 
