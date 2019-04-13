@@ -44,14 +44,14 @@ class SaveFileWriter():
 		file representing the course.
 		'''
 		with open(self.filename + ".lvl", "wb") as file:
-			getNodes(nodes)
-			getObjects(objects, nodes)
-			getLoops()
+			self.getNodes(nodes)
+			self.getObjects(objects, nodes)
+			self.getLoops()
 
-			writeHeader(file)
-			writeNodes(file)
-			writeObjects(file)
-			writeLoops(file)
+			self.writeHeader(file)
+			self.writeNodes(file)
+			self.writeObjects(file)
+			self.writeLoops(file)
 
 	def findAnchor(self):
 		for node in self.nodes:
@@ -60,13 +60,12 @@ class SaveFileWriter():
 		return Point(0, 0)
 
 	def getNodes(self):
-		anchor = findAnchor(nodes)
 		fmt = '>2i4I4B'
 
 		for node in self.nodes:
 			# First pack base position, then direction indices, then node_type
-			posx = (node.pos - anchor).x
-			posy = (node.pos - anchor).y
+			posx = (node.pos - self.anchor).x
+			posy = (node.pos - self.anchor).y
 			nextNodes = getNextNodes(node)
 			subTypes = getNodeType(node)
 			

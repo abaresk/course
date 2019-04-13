@@ -1,10 +1,7 @@
 
 from collections import defaultdict
 
-DIR_UP = 0
-DIR_LEFT = 1
-DIR_DOWN = 2
-DIR_RIGHT = 3
+
 
 NODE_NONSWITCH = 0
 NODE_SWITCH = 1
@@ -19,36 +16,6 @@ CURVE_RIGHT = -1
 
 def nextDir(direction, turns):
 	return (direction + turns) % 4
-
-class Point():
-	def __init__(self, x=None, y=None):
-		self.x = x
-		self.y = y
-
-	def __add__(self, p2):
-		return Point(self.x + p2.x, self.y + p2.y)
-
-	def __sub__(self, p2):
-		return Point(self.x - p2.x, self.y - p2.y)
-
-	def __eq__(self, other):
-		return self.x == other.x and self.y == other.y
-
-	def nthPoint(self, direction, length):
-		if direction == DIR_UP:
-			return Point(self.x, self.y + length)
-		elif direction == DIR_LEFT:
-			return Point(self.x - length, self.y)
-		elif direction == DIR_DOWN:
-			return Point(self.x, self.y - length)
-		else:
-			return Point(self.x + length, self.y)
-
-	def __hash__(self):
-		return hash((self.x, self.y))
-
-	def __repr__(self):
-		return "(" + str(self.x) + ", " + str(self.y) + ")"
 
 # This is a linked list node for each piece
 class Piece():
