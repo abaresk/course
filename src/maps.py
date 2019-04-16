@@ -14,8 +14,7 @@ CURVE_NONE = 0
 CURVE_LEFT = 1
 CURVE_RIGHT = -1
 
-def nextDir(direction, turns):
-	return (direction + turns) % 4
+
 
 # This is a linked list node for each piece
 class Piece():

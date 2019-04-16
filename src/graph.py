@@ -76,6 +76,9 @@ def vectorDir(p1, p2):
 def nextDir(direction, turns):
 	return (direction + turns) % 4
 
+def areLinked(node1, node2):
+	return node1 in node2.nexts and node2 in node1.nexts
+
 class Node():
 	def __init__(self, pos):
 		self.pos = pos
@@ -102,6 +105,9 @@ class NullNode(Node):
 	def getParent(self):
 		pass
 
+	def allPorts(self):
+		return [self.pos.nthPoint(i, NullNode.RADIUS + 1) for i in range(4)]
+
 class PointNode(Node):
 	RADIUS = 0
 	def __init__(self, pos):
@@ -112,6 +118,9 @@ class PointNode(Node):
 
 	def rotate(self):
 		return
+
+	def allPorts(self):
+		return [self.pos.nthPoint(i, PointNode.RADIUS + 1) for i in range(4)]
 
 class CurveNode(Node):
 	RADIUS = 1
@@ -124,6 +133,9 @@ class CurveNode(Node):
 
 	def rotate(self):
 		return
+
+	def allPorts(self):
+		return [self.pos.nthPoint(nextDir(self.orient, i), CurveNode.RADIUS + 1) for i in range(2)]
 
 class ThreewayNode(Node):
 	RADIUS = 1
@@ -139,6 +151,9 @@ class ThreewayNode(Node):
 	def rotate(self):
 		pass
 
+	def allPorts(self):
+		return [self.pos.nthPoint(nextDir(self.orient, i), ThreewayNode.RADIUS + 1) for i in range(2)]
+
 class FourwayNode(Node):
 	RADIUS = 1
 	def __init__(self, pos, passState):
@@ -150,6 +165,9 @@ class FourwayNode(Node):
 
 	def rotate(self):
 		return
+
+	def allPorts(self):
+		return [self.pos.nthPoint(i, FourwayNode.RADIUS + 1) for i in range(4)]
 
 class FourwayRegularNode(FourwayNode):
 	def __init__(self, pos, orient, passState):
@@ -200,71 +218,36 @@ class Graph():
 	def addTrackFromNode(self, node, direction):
 		assert(node.validDirection(direction))
 		assert(node.getNext(direction) is NullNode)
-
-		# Check for merges
-
-		# Move NullNode
-		oldpoint = node.getNext(direction).pos
-		newpoint = oldpoint.nthPoint(direction, 1)
-
-		if self._checkCollision(node, oldpoint, newpoint):
-			return
-
-		node.getNext(direction).move(direction, 1)
-		
-		# Update pointmap
-		self.pointmap[oldpoint] = Edge(node, node.getNext(direction))
-		self.pointmap[newpoint] = node.getNext(direction)
+		self._addTrack(node.getNext(direction), direction, Edge(node, node.getNext(direction)))
 
 	def addTrackFromEdge(self, edge):
 		assert(edge.has1NullNode())
+		self._addTrack(edge.getNullNode(), edge.getDirToNullNode(), edge)
 
-		# Check for merges
-
-		direction = edge.getDirToNullNode()
-		node = edge.getNullNode()
-
-		# Move NullNode
-		oldpoint = node.pos
-		newpoint = oldpoint.nthPoint(direction, 1)
-
-		if self._checkCollision(node, oldpoint, newpoint):
+	def _addTrack(self, nullnode, direction, edge):
+		oldpoint, newpoint = nullnode.pos, nullnode.nthPoint(direction, 1)
+		
+		if self._checkCollision(nullnode, oldpoint, newpoint):
 			return
 
-		node.move(direction, 1)
+		nullnode.move(direction, 1)
 
-		# Update pointmap
-		self.pointmap[oldpoint] = edge
-		self.pointmap[newpoint] = node
+		if self._mergeable(nullnode):
+			self._mergeNodes(nullnode)
+		else:
+			self.pointmap[oldpoint] = edge
+			self.pointmap[newpoint] = nullnode
 
 	def addNodeFromEdge(self, edge, nodeType):
 		assert(edge.has1NullNode())
 
-		# Check for merges
-
-		nullnode = edge.getNullNode()
-		mainnode = edge.getNonNullNode()
-		direction = edge.getDirToNullNode()
-
-		# Change type of node and initialize with corrects vars
 		newNode = self._makeNode(nodeType)
+		point = edge.getNullNode().nthPoint(edge.getDirToNullNode(), type(newNode).RADIUS + 1)
+		newNode.pos = point
 
-		# Check for collision:
-		if self._checkCollision(newNode, None, newNode.pos):
-			return
-		
-		# Link the new node with the non-null
-		self._replaceNullNode(edge, newNode)
-
-		# Move node to its new position
-		newNode.move(direction, type(newNode).RADIUS + 1)
-
-		# Add the node's points to the pointmap
-		self._addPointsToPointmap(newNode)
-
-		# Surround new node with halo of NullNodes
-			#--> Depends on merges; should be delegated to the node
-		pass
+		if self._addNode(newNode, point):
+			# Link new node with the non-null
+			self._replaceNullNode(edge, newNode)
 
 	def rotateNode(self, node, clockwise=True):
 		self._removePointsFromPointmap(node)
@@ -272,22 +255,26 @@ class Graph():
 		self._addPointsToPointmap(node)
 
 	def addNewNode(self, point, nodeType):
-		
-		# Check for merges
-
 		newNode = self._makeNode(nodeType)
 		newNode.pos = point
 
-		if self._checkCollision(newNode, None, point):
-			return
+		self._addNode(newNode, point)
 
-		self._addPointsToPointmap(newNode)
+	def _addNode(self, node, point):
+		if self._checkCollision(node, None, point):
+			return False
 
-		# Surround new node with halo of NullNodes
-			#--> Depends on merges; should be delegated to the node
-		pass
+		self._addPointsToPointmap(node)
+		self._addNullNodes(node)
+		
+		for port in node.allPorts():
+			if self._mergeable(port):
+				self._mergeNodes(port)
+			else:
+				self.pointmap[port.pos] = Edge(node, port)
+		return True
 
-	def _merge(self, node):
+	def _mergeable(self, node):
 		'''
 		Input: NullNode
 		Do: merge with another NullNode (cancel each other out)
@@ -308,11 +295,13 @@ class Graph():
 			return False
 
 		# They can be merged!
-		self._mergeHelper(node, adjNode)
 		return True
 
-	def _mergeHelper(self, node, adjNode):
+	def _mergeNodes(self, node):
+		assert(self._mergeable(node))
+
 		parent = node.getParent()
+		adjNode = [type(n) is NullNode for n in self.pointmap[node.pos.nthPoint(direction, -1)]][0]
 		adjParent = adjNode.getParent()
 		direction = vectorDir(parent, node)
 
@@ -320,7 +309,12 @@ class Graph():
 		adjParent.nexts[nextDir(direction, 2)] = parent
 
 		# TODO: change any edge in between the two new nodes, and add any new edges
-		
+		newEdge = Edge(parent, adjParent)
+		for point in self._allIntermediatePoints(parent, adjParent):
+			self._removeEdgeWith(point, node)
+			self._removeEdgeWith(point, adjNode)
+			self.pointmap[point].append(newEdge)
+
 		# Remove nodes from graph
 		self._wipeNode(node)
 		self._wipeNode(adjNode)
@@ -330,7 +324,6 @@ class Graph():
 		assert(node in self.pointmap[node.pos])
 		self.pointmap[node.pos].remove(node)
 		self.nodes.remove(node)
-
 
 	def _checkCollision(self, node, oldpos, newpos):
 		'''
@@ -392,3 +385,32 @@ class Graph():
 		for point in node.allPoints():
 			self.pointmap[point].remove(node)
 
+	def _allIntermediatePoints(self, node1, node2):
+		assert(areLinked(node1, node2))
+		direction = vectorDir(node1, node2)
+
+		output = []
+		point = node1.pos
+		while point != node2.pos:
+			if node1 not in self.pointmap[point] and node2 not in self.pointmap[point]:
+				output.append(Point(point.x, point.y))
+			point = point.nthPoint(direction, 1)
+		return output
+
+	def _removeEdgeWith(self, point, node):
+		for item in self.pointmap[point]:
+			if type(item) is Edge and node in item.bridge:
+				self.pointmap[point].remove(item)
+
+	# Create a halo of NullNodes around a node
+	def _addNullNodes(self, node):
+		for point in node.allPorts():
+			direction = vectorDir(node.pos, point)
+			nullnode = NullNode(point)
+
+			# Link nodes
+			node.nexts[direction] = nullnode
+			nullnode.nexts[nextDir(direction, 2)] = node
+
+			# Add to pointmap
+			self.pointmap[point].append(nullnode)
