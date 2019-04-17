@@ -15,7 +15,7 @@ API:
 	Getters:
 		...
 '''
-from src/pieces import *
+from src.pieces import *
 
 from collections import defaultdict
 
@@ -46,9 +46,9 @@ class Graph():
 			self._replaceNullNode(edge, newNode)
 
 	def rotateNode(self, node, clockwise=True):
-		self._removePointsFromPointmap(node)
+		self._removeNodeToPointmap(node)
 		node.rotate(clockwise)
-		self._addPointsToPointmap(node)
+		self._addNodeToPointmap(node)
 
 	def addNewNode(self, point, nodeType):
 		newNode = self._makeNode(nodeType)
@@ -56,14 +56,74 @@ class Graph():
 
 		self._addNode(newNode, point)
 
-	def deleteTrack(self):
-		pass
+	def deleteTrack(self, edge, point):
+		assert(edge in self.pointmap[point])
 
-	def deleteNode(self):
-		pass
+		if edge.has1NullNode():
+			self._deleteUnboundedTrack(edge)
+		else:
+			self._deleteBoundedTrack(edge, point)
+
+	def _deleteUnboundedTrack(self, edge):
+			nullnode = edge.getNullNode()
+			newpoint = nullnode.pos.nthPoint(nextDir(edge.getDirToNullNode(), 2), 1)
+
+			self.pointmap[nullnode.pos].remove(nullnode)
+			self.pointmap[newpoint].remove(edge)
+			self.pointmap[newpoint].append(nullnode)
+
+			nullnode.pos = newpoint
+
+	def _deleteBoundedTrack(self, edge, point):
+			nullnode1, nullnode2 = NullNode(point), NullNode(point)
+			edge1, edge2 = Edge(node.node1, nullnode1), Edge(node.node2, nullnode2)
+			self._linkNodes(edge.node1, nullnode1)
+			self._linkNodes(edge.node2, nullnode2)
+
+			self.pointmap[point].remove(edge)
+			self.pointmap[point].append(nullnode1)
+			self.pointmap[point].append(nullnode2)
+
+			self._relinkEdge(edge, edge1)
+			self._relinkEdge(edge, edge2)
+
+	def deleteNode(self, node):
+		for point in node.allPoints():
+			self.pointmap[point].remove(node)
+
+		for direction in range(4):
+			link = node.nexts[direction]
+			if link:
+				if type(link) is NullNode:
+					self.pointmap[link.pos].remove(link)
+				else:
+					nullnode = NullNode(node.pos.nthPoint(direction, node.RADIUS))
+					self._linkNodes(node.nexts[direction], nullnode)
+					oldEege = self._findEdge(node.pos.nthPoint(direction, node.RADIUS + 1), node, link)
+					if oldedge is not None:
+						self._relinkEdge(oldedge)
 
 	def moveRegion(self):
 		pass
+
+	def _findEdge(self, point, node1, node2):
+		for item in self.pointmap[point]:
+			if type(item) is Edge:
+				if (item.node1 == node1 and item.node2 == node2) or (item.node1 == node2 and item.node2 == node1):
+					return item
+		return None
+
+	def _relinkEdge(self, oldedge, newedge):
+		for point in self._allIntermediatePoints(newedge.node1, newedge.node2):
+			self.pointmap[point].remove(oldedge)
+			self.pointmap[point].append(newedge)
+
+	def _linkNodes(self, node1, node2):
+		assert(vectorDir(node1, node2) is not None)
+		direction = vectorDir(node1, node2)
+
+		node1.nexts[direction] = node2
+		node2.nexts[nextDir(direction, 2)] = node1
 
 	def _addTrack(self, nullnode, direction, edge):
 		oldpoint, newpoint = nullnode.pos, nullnode.nthPoint(direction, 1)
@@ -83,7 +143,7 @@ class Graph():
 		if self._checkCollision(node, None, point):
 			return False
 
-		self._addPointsToPointmap(node)
+		self._addNodeToPointmap(node)
 		self._addNullNodes(node)
 		
 		for port in node.allPorts():
@@ -196,11 +256,11 @@ class Graph():
 		edge.bridge.remove(edge.getNullNode())
 		edge.bridge.add(newNode)
 
-	def _addPointsToPointmap(self, node):
+	def _addNodeToPointmap(self, node):
 		for point in node.allPoints():
 			self.pointmap[point].append(node)
 
-	def _removePointsFromPointmap(self, node):
+	def _removeNodeToPointmap(self, node):
 		for point in node.allPoints():
 			self.pointmap[point].remove(node)
 
