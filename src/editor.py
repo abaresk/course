@@ -1,31 +1,52 @@
-
-from src.maps import *
+from src.graph import Graph
+from utils.colors import Color
+from constants.keycodes import *
 
 import tkinter as tk
-from collections import defaultdict
 
-class Editor():	
-	CURSOR_SELECT = 0
-	CURSOR_DRAW = 1
-	CURSOR_ERASE = 2
+class GraphSpace():
+	def __init__(self, point, piece):
+		self.point = point
+		self.piece = piece
+
+	def __eq__(self, other):
+		return self.point == other.point and self.piece is other.piece
+
+class Editor():
+	MODE_SELECT = 1
+	MODE_DRAW = 2
 
 	def __init__(self):
-		self.r = self.init()
+		self.graph = Graph()
+		piece = self.graph.init()
 
-	def init(self):
-		r = tk.Tk()
-		r.title('Level Editor')
-		r.geometry("800x600")	
-		self.initMenu(r)
-		self.initToolbar(r)
-		self.initEditMenu(r)
-		self.initTilemap(r)
-		self.initScrollers(r)
-		return r
+		# State variables, along with mode and item
+		self.keys = []
+		self.selected = GraphSpace(piece.pos, piece)
 
-	def initMenu(self, r):
-		menu = tk.Menu(r)
-		r.config(menu=menu)
+		# Init UI
+		self.ui = tk.Tk()
+		self.uiInit()
+
+	def main(self):
+		self.ui.mainloop()
+
+	def uiInit(self):
+		self.ui.title("Level Editor")
+		self.ui.geometry("800x600")
+		self.initMenu()
+		self.initToolbar()
+		self.initEditMenu()
+		# self.initTilemap()
+		# self.initScrollers()
+
+		# Key bindings
+		self.ui.bind("<KeyPress>", self.keydown)
+		self.ui.bind("<KeyRelease>", self.keyup)
+
+	def initMenu(self):
+		menu = tk.Menu(self.ui)
+		self.ui.config(menu=menu)
 		
 		filemenu = tk.Menu(menu)
 		menu.add_cascade(label='File', menu=filemenu)
@@ -34,68 +55,165 @@ class Editor():
 		filemenu.add_command(label='Save')
 		filemenu.add_command(label='Close File')
 		filemenu.add_separator()
-		filemenu.add_command(label='Exit', command=r.quit)
+		filemenu.add_command(label='Exit', command=self.ui.quit)
 		
 		helpmenu = tk.Menu(menu)
 		menu.add_cascade(label='Help', menu=helpmenu)
 		helpmenu.add_command(label='Help')
 		helpmenu.add_command(label='About')
 
-	def initToolbar(self, r):
-		toolbar = tk.Frame(r)
+	def initToolbar(self):
+		toolbar = tk.Frame(self.ui)
 		toolbar.pack(anchor='w')
 
-		self.cursorState = tk.IntVar()
-		selectButton = tk.Radiobutton(toolbar, variable=self.cursorState, text='Select', value=self.CURSOR_SELECT)
+		self.mode = tk.IntVar()
+		selectButton = tk.Radiobutton(toolbar, variable=self.mode, text='Select', value=Editor.MODE_SELECT)
 		selectButton.pack(side=tk.LEFT)
 		
-		drawButton = tk.Radiobutton(toolbar, variable=self.cursorState, text='Draw', value=self.CURSOR_DRAW)
+		drawButton = tk.Radiobutton(toolbar, variable=self.mode, text='Draw', value=Editor.MODE_DRAW)
 		drawButton.pack(side=tk.LEFT)
-		
-		eraseButton = tk.Radiobutton(toolbar, variable=self.cursorState, text='Erase', value=self.CURSOR_ERASE)
-		eraseButton.pack(side=tk.LEFT)
-		
+
 		saveButton = tk.Button(toolbar, text='Save')
 		saveButton.pack(side=tk.LEFT)
-		
-		runButton = tk.Button(toolbar, text='Run!')
-		runButton.pack(side=tk.LEFT)
-
-	def initEditMenu(self, r):
-		label = tk.Label(r, text='Edit Mode')
+	
+	def initEditMenu(self):
+		label = tk.Label(self.ui, text='Edit Mode')
 		label.pack(anchor='w')
 
-		options = { 'Tracks': ['Single', '3-way', '4-way'],
+		options = { 'Tracks': ['Rail', '3-way', '4-way'],
 					'Enemies': ['Biter', 'Bomber', 'Bouncer', 'Christine', 'Zapper'],
 					'Objects': ['Portal', 'Sludge', 'Slowdown', 'Phaser', 'Repel']}
 		
-		lists = DepLists(r, options)
+		lists = DepLists(self.ui, options)
 		self.editMode = lists.var_a
-		self.editObject = lists.var_b
+		self.item = lists.var_b
 		lists.pack(anchor='w')
 
-	def initTilemap(self, r):
-		self.tm = CanvasWindow(r, cellSize=16, editor=self)
+	def initTilemap(self):
+		self.tm = CanvasWindow(self.ui, cellSize=16, editor=self)
 		self.tm.pack(fill=tk.BOTH, expand=tk.YES)
 
-	def initScrollers(self, r):
-		frame = tk.Frame(r)
+	def initScrollers(self):
+		frame = tk.Frame(self.ui)
 		frame.pack()
 		
-		leftButton = tk.Button(frame, text='←', command=self.tm.moveLeft)
+		leftButton = tk.Button(frame, text='←', command=self.tm.scrollLeft)
 		leftButton.pack(side=tk.LEFT)
 		
-		rightButton = tk.Button(frame, text='→', command=self.tm.moveRight)
+		rightButton = tk.Button(frame, text='→', command=self.tm.scrollRight)
 		rightButton.pack(side=tk.LEFT)
 		
-		upButton = tk.Button(frame, text='↑', command=self.tm.moveUp)
+		upButton = tk.Button(frame, text='↑', command=self.tm.scrollUp)
 		upButton.pack(side=tk.LEFT)
 		
-		downButton = tk.Button(frame, text='↓', command=self.tm.moveDown)
+		downButton = tk.Button(frame, text='↓', command=self.tm.scrollDown)
 		downButton.pack(side=tk.LEFT)
 
-	def main(self):
-		self.r.mainloop()
+	def keydown(self, event):
+		self.keys.append(event.keysym)
+
+	def keyup(self, event):
+		self.keys.remove(event.keysym)
+
+	# use current state to decide behavior
+	def doAction(self):
+		if self.mode == Editor.MODE_SELECT:
+			if KEY_SPACE in self.keys:
+				self.placeItem()
+			elif KEY_BACKSPACE in self.keys:
+				self.deleteItem()
+			elif KEY_TAB in self.keys:
+				self.scroll()
+			elif KEY_SHIFT in self.keys:
+				self.modifySelected()
+			
+	# handle arrows pressed (creates curves)
+	def placeItem(self):
+		if self.editMode == 'Tracks':
+			self._placeTrack()
+
+	def _placeTrack(self):
+		if self.item == 'Rail':
+			if self._canAddRail(self.selected):
+				nullnodeDirs = self.selected.piece.validNewTrackDirections()
+				direction, curve = self._getRailConfig(nullnodeDirs)
+				
+				if direction is not None:
+					if curve is not None:
+						self.graph.addNodeFromPiece(self.piece, direction, NODE_CURVE, curve)
+					else:
+						self.graph.addTrackFromPiece(self.piece, direction)
+
+		elif self.item == '3-way':
+			pass
+
+	def deleteItem(self):
+		pass
+
+	def scroll(self):
+		if KEY_UP in self.keys:
+			self.tm.scrollUp()
+		if KEY_LEFT in self.keys:
+			self.tm.scrollLeft()
+		if KEY_DOWN in self.keys:
+			self.tm.scrollDown()
+		if KEY_RIGHT in self.keys:
+			self.tm.scrollRight()
+
+	# TODO: flesh this out when rest works
+	# push and pop from a stack of points
+	def modifySelected(self):
+		pass
+
+	def _canAddRail(self, selected):
+		if type(selected.piece) is Node and selected.piece.allNullnodes():
+			return True
+		elif type(selected.piece) is Edge:
+			return any([(node.pos - selected.point).distSquared() == 1 \
+						for node in selected.piece.allNullnodes()])	
+
+	def _getRailConfig(self, nullnodeDirs):
+		direction, curve = None, None
+		if len(nullnodeDirs) == 1:
+			direction = nullnodeDirs[0]
+			curve = validKeyPressed(self.keys, validCurves(direction))
+		else:
+			direction = validKeyPressed(self.keys, nullnodeDirs)
+			if direction is not None:
+				curve = validKeyPressed(self.keys[self.keys.index(dir2key(direction))+1:], \
+										validCurves(direction))
+		return direction, curve
+
+def validKeyPressed(keys, valid):
+	for key in keys:
+		if key2Dir(key) in valid:
+			return key2Dir(key)
+	return None
+
+def validCurves(direction):
+	return [nextDir(direction, -1), nextDir(direction, 1)]
+
+def key2Dir(key):
+	if key == KEY_UP:
+		return DIR_UP
+	elif key == KEY_LEFT:
+		return DIR_LEFT
+	elif key == KEY_DOWN:
+		return DIR_DOWN
+	elif key == KEY_RIGHT:
+		return DIR_RIGHT
+	return None
+
+def dir2key(direction):
+	if direction == DIR_UP:
+		return KEY_UP
+	elif direction == DIR_LEFT:
+		return KEY_LEFT
+	elif direction == DIR_DOWN:
+		return KEY_DOWN
+	elif direction == DIR_RIGHT:
+		return KEY_RIGHT
+	return None
 
 class DepLists(tk.Frame):
 	def __init__(self, master, options):
@@ -126,96 +244,69 @@ class DepLists(tk.Frame):
 			menu.add_command(label=key, command=lambda val=key: self.var_b.set(val))
 
 class Cell():
-	TRACK_COLOR_BG = '#9ffca2'
-	NODE_COLOR_BG = '#6aabe8'
-	EMPTY_COLOR_BG = 'white'
-	TRACK_COLOR_BORDER = 'black'
-	NODE_COLOR_BORDER = 'black'
-	EMPTY_COLOR_BORDER = 'black'
+	TRACK_COLOR_BG = Color().fromHex('#9ffca2')
+	NODE_COLOR_BG = Color().fromHex('#6aabe8')
+	EMPTY_COLOR_BG = Color().fromHex('#ffffff')
+	SELECTED_BG = Color().fromHex("#f71b34")
 
-	SELECTED_TRACK_BG = '#BCB771'
-	SELECTED_NODE_BG = '#a66f8b'
-	SELECTED_EMPTY_BG = 'red'
+	CELL_BORDER = Color().fromHex("#000000")
 
-	def __init__(self, master, x, y, size, anchor, grid):
+	def __init__(self, master, col, row, size, items):
 		self.master = master
-		self.grid = grid
-		self.x = x
-		self.y = y
+		self.items = items
+		self.col = col
+		self.row = row
 		self.size = size
 		self.selected = False
-		self.anchor = anchor
 
 	def draw(self):
 		""" order to the cell to draw its representation on the canvas """
-		gridPoint = self.anchor + Point(self.x, -self.y)
+		# # TODO: send this as a parameter
+		# point = self.anchor + Point(self.x, -self.y)
 		if self.master != None:
-			space = self.grid.get(gridPoint)
-
-			if not space:
-				if self.selected:
-					fill = Cell.SELECTED_EMPTY_BG
-				else:
-					fill = Cell.EMPTY_COLOR_BG
-				outline = Cell.EMPTY_COLOR_BORDER
-			elif len(space) == 1 and type(space[0]) is Node:
-				if self.selected:
-					fill = Cell.SELECTED_NODE_BG
-				else:
-					fill = Cell.NODE_COLOR_BG
-				outline = Cell.NODE_COLOR_BORDER
+			if not self.items:
+				fill = Cell.EMPTY_COLOR_BG
+			elif len(self.items) == 1 and type(self.items[0]) is Node:
+				fill = Cell.NODE_COLOR_BG
 			else:
-				if self.selected:
-					fill = Cell.SELECTED_TRACK_BG
-				else:
-					fill = Cell.TRACK_COLOR_BG
-				outline = Cell.TRACK_COLOR_BORDER
+				fill = Cell.TRACK_COLOR_BG
+
+			if self.selected:
+				fill = fill.blend(SELECTED_BG, 0.5)
 
 			xmin = self.x * self.size
 			xmax = xmin + self.size
 			ymin = self.y * self.size
 			ymax = ymin + self.size
 
-			self.master.create_rectangle(xmin, ymin, xmax, ymax, fill = fill, outline = outline)
-			
+			self.master.create_rectangle(xmin, ymin, xmax, ymax, fill=fill.asString(), outline=Cell.CELL_BORDER)
+
 class CanvasWindow(tk.Canvas):
 	def __init__(self, master, cellSize, editor, *args, **kwargs):
 		tk.Canvas.__init__(self, master, *args, **kwargs)
 		self.cellSize = cellSize
-		self.height, self.width = super().winfo_reqheight(), super().winfo_reqwidth()
-		self.nRows, self.nCols = self.height // self.cellSize, self.width // self.cellSize
-
-		self.anchor = Point(-self.nCols // 2, self.nRows // 2)
-		self.graph = Graph()
-
-		self.cells = [[Cell(self, i, j, cellSize, self.anchor, self.graph.grid) for i in range(self.nCols)] for j in range(self.nRows)]
-
 		self.editor = editor
-		self.selected = None		
+
+		self.height, self.width = super().winfo_reqheight(), super().winfo_reqwidth()
 
 		self.bind("<Configure>", self.on_resize)
 		self.bind("<Button-1>", self.handleMouseClick)
 
-		self.keysPressed = set()
-		self.master.bind("<KeyPress>", self.keydown)
-		self.master.bind("<KeyRelease>", self.keyup)
-
+		self.updateCells()
 		self.display()
 
 	def updateCells(self):
 		self.nRows, self.nCols = self.height // self.cellSize, self.width // self.cellSize
-		self.cells = [[Cell(self, i, j, self.cellSize, self.anchor, self.graph.grid) for i in range(self.nCols)] for j in range(self.nRows)]
+		self.anchor = Point(-self.nCols // 2, self.nRows // 2)
+		self.cells = [[Cell(self, col, row, self.cellSize, self.graph.pointmap[self.anchor + Point(self.col, -self.row)]) for col in range(self.nCols)] for row in range(self.nRows)]
 
 	# Redraw grid on resizing
 	def on_resize(self, event):
-		wscale = float(event.width) / self.width
-		hscale = float(event.height) / self.height
 		self.width = event.width
 		self.height = event.height
 		self.config(scrollregion=self.bbox(tk.ALL))
-		self.scale("all", 0, 0, wscale, hscale)
+		self.scale("all", 0, 0, float(event.width) / self.width, float(event.height) / self.height)
 		self.updateCells()
-		self.display()
 
 	def display(self):
 		self.delete("all")
@@ -223,69 +314,18 @@ class CanvasWindow(tk.Canvas):
 			for cell in row:
 				cell.draw()
 
-	def moveUnit(self, delta):
+	def scrollUnit(self, delta):
 		self.anchor += delta
 		self.updateCells()
-		self.display()
 
-	def moveLeft(self):
-		self.moveUnit(Point(-1, 0))
+	def scrollUp(self):
+		self.scrollUnit(Point(0, 1))
 
-	def moveRight(self):
-		self.moveUnit(Point(1, 0))
+	def scrollLeft(self):
+		self.scrollUnit(Point(-1, 0))
 
-	def moveDown(self):
-		self.moveUnit(Point(0, -1))
+	def scrollDown(self):
+		self.scrollUnit(Point(0, -1))
 
-	def moveUp(self):
-		self.moveUnit(Point(0, 1))
-
-	def _eventCoords(self, event):
-		row = event.y // self.cellSize
-		column = event.x // self.cellSize
-		return row, column
-
-	def selectCell(self, newCell):
-		if self.selected:
-			self.selected.selected = False		
-		self.selected = newCell
-		newCell.selected = True
-
-	def updateGraphState(self, cell):
-		gridPoint = self.anchor + Point(cell.x, -cell.y)
-		if not self.graph.grid[gridPoint]:
-			return
-		self.graph.currPos = gridPoint
-		# TODO: cycle through various pieces on a tile
-		self.graph.currPiece = self.graph.grid[gridPoint][0]
-		self.graph.getNewDirection()
-
-	def handleMouseClick(self, event):
-		if self.editor.cursorState.get() != self.editor.CURSOR_SELECT:
-			return
-		row, column = self._eventCoords(event)
-		cell = self.cells[row][column]
-		self.selectCell(cell)
-		self.updateGraphState(cell)
-		self.display()
-
-	def keyup(self, event):
-		self.keysPressed.remove(event.char)
-		self.runKeys()
-
-	def keydown(self, event):
-		if event.keycode not in self.keysPressed:
-			self.keysPressed.add(event.char)
-		self.runKeys()
-
-	def runKeys(self):
-		print(self.keysPressed)
-		self.handleSpaceBar()
-		self.display()
-
-	def handleSpaceBar(self):
-		if ' ' in self.keysPressed:
-			mask = ('r' in self.keysPressed) ^ ('e' in self.keysPressed )
-			curved = CURVE_NONE if not mask else (CURVE_LEFT if 'e' in self.keysPressed else CURVE_RIGHT)
-			if type(self.graph.currPiece) is Edge:
-				self.graph.addTrack(curved)
+	def scrollRight(self):
+		self.scrollUnit(Point(1, 0))

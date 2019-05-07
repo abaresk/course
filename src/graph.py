@@ -23,7 +23,14 @@ class Graph():
 	def __init__(self):
 		self.pointmap = defaultdict(list)
 		self.nodes = set()
-		# TODO: set the first node
+		
+	def init(self, pos=Point(0, 0)):
+		assert(not self.pointmap and not self.nodes)
+		self.addNewNode(pos, NODE_POINT)
+		return list(self.nodes)[0]
+	
+	def addTrackAtPoint(self, point, orient):
+		pass
 
 	def addTrackFromNode(self, node, direction):
 		assert(node.validDirection(direction))
@@ -37,9 +44,8 @@ class Graph():
 	def addNodeFromEdge(self, edge, nodeType):
 		assert(edge.has1NullNode())
 
-		newNode = self._makeNode(nodeType)
 		point = edge.getNullNode().nthPoint(edge.getDirToNullNode(), type(newNode).RADIUS + 1)
-		newNode.pos = point
+		newNode = self._makeNode(nodeType, point)
 
 		if self._addNode(newNode, point):
 			# Link new node with the non-null
@@ -51,8 +57,7 @@ class Graph():
 		self._addNodeToPointmap(node)
 
 	def addNewNode(self, point, nodeType):
-		newNode = self._makeNode(nodeType)
-		newNode.pos = point
+		newNode = self._makeNode(nodeType, point)
 
 		self._addNode(newNode, point)
 
@@ -119,8 +124,8 @@ class Graph():
 			self.pointmap[point].append(newedge)
 
 	def _linkNodes(self, node1, node2):
-		assert(vectorDir(node1, node2) is not None)
-		direction = vectorDir(node1, node2)
+		direction = vectorDir(node1.pos, node2.pos)
+		assert(direction is not None)
 
 		node1.nexts[direction] = node2
 		node2.nexts[nextDir(direction, 2)] = node1
@@ -143,14 +148,13 @@ class Graph():
 		if self._checkCollision(node, None, point):
 			return False
 
+		self.nodes.add(node)
 		self._addNodeToPointmap(node)
 		self._addNullNodes(node)
 		
-		for port in node.allPorts():
-			if self._mergeable(port):
-				self._mergeNodes(port)
-			else:
-				self.pointmap[port.pos] = Edge(node, port)
+		for nullnode in node.allNullnodes():
+			if self._mergeable(nullnode):
+				self._mergeNodes(nullnode)
 		return True
 
 	def _mergeable(self, node):
@@ -162,9 +166,9 @@ class Graph():
 		assert(type(node) is NullNode)
 		# use NullNode's getParent method
 		parent = node.getParent()
-		direction = vectorDir(parent, node)
+		direction = vectorDir(parent.pos, node.pos)
 
-		if NullNode not in self.pointmap[node.pos.nthPoint(direction, -1)]:
+		if not any([type(item) is NullNode for item in self.pointmap[node.pos.nthPoint(direction, -1)]]):
 			return False
 
 		adjNode = [type(n) is NullNode for n in self.pointmap[node.pos.nthPoint(direction, -1)]][0]
@@ -212,7 +216,7 @@ class Graph():
 		'''
 		if type(node) is NullNode:
 			return self._NullNodeInvasion(oldpos, newpos)
-		return any([type(value) is not NullNode for point in node.allPoints() for value in self.pointmap[point]])
+		return any([type(item) is not NullNode for point in node.allPoints() for item in self.pointmap[point]])
 
 	# A NullNode can overlap with one other type of node. But it cannot
 	# overlap with that same node the next turn
@@ -226,27 +230,26 @@ class Graph():
 	def _nonNullNodesAtPoint(self, point):
 		return [type(n) is Node and type(n is not NullNode for n in self.pointmap[point])]
 
-	def _makeNode(self, nodeType):
+	def _makeNode(self, nodeType, pos):
 		if nodeType == NODE_POINT:
-			return PointNode()
-		elif nodeType = NODE_CURVE:
-			return CurveNode()
+			return PointNode(pos)
+		elif nodeType == NODE_CURVE:
+			return CurveNode(pos)
 		elif nodeType == NODE_3WAY:
-			return ThreewayNode()
+			return ThreewayNode(pos)
 		elif nodeType == NODE_4WAY_REG:
-			return FourwayRegularNode()
+			return FourwayRegularNode(pos)
 		elif nodeType == NODE_4WAY_ICE:
-			return FourwayIcyNode()
+			return FourwayIcyNode(pos)
 		elif nodeType == NODE_4WAY_2PATH:
-			return Fourway2PathsNode()
+			return Fourway2PathsNode(pos)
 		return None
 
 	def _replaceNullNode(self, edge, newNode):
 		assert(edge.has1NullNode())
 
 		# Link nodes together
-		edge.getNonNullNode().nexts[direction] = newNode
-		newNode.nexts[nextDir(direction, 2)] = edge.getNonNullNode()
+		self._linkNodes(edge.getNonNullNode(), newNode)
 
 		# Update graph
 		self.nodes.remove(edge.getNullNode())
@@ -288,8 +291,8 @@ class Graph():
 			nullnode = NullNode(point)
 
 			# Link nodes
-			node.nexts[direction] = nullnode
-			nullnode.nexts[nextDir(direction, 2)] = node
+			self._linkNodes(node, nullnode)
 
 			# Add to pointmap
 			self.pointmap[point].append(nullnode)
+			self.nodes.add(nullnode)

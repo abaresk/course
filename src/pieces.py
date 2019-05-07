@@ -30,6 +30,9 @@ class Point():
 	def __repr__(self):
 		return "(" + str(self.x) + ", " + str(self.y) + ")"
 
+	def distSquared(self):
+		return self.x * self.x + self.y * self.y
+
 	def nthPoint(self, direction, length):
 		if direction == DIR_UP:
 			return Point(self.x, self.y + length)
@@ -43,7 +46,7 @@ class Point():
 # Returns direction from p1 to p2
 def vectorDir(p1, p2):
 	diff = p2 - p1
-	if diff.x == 0 and diff.x > 0:
+	if diff.x == 0 and diff.y > 0:
 		return DIR_UP
 	elif diff.y == 0 and diff.x < 0:
 		return DIR_LEFT
@@ -60,8 +63,22 @@ def nextDir(direction, turns):
 def areLinked(node1, node2):
 	return node1 in node2.nexts and node2 in node1.nexts
 
+
+
+
+
+# class Track():
+# 	def __init__(self, pos, orient):
+# 		self.pos = pos,
+# 		self.orient = orient 
+# 		self.nexts = [None for i in range(2)]
+
+
+
+
+
 class Node():
-	def __init__(self, pos):
+	def __init__(self, pos=Point(0, 0)):
 		self.pos = pos
 		self.nexts = [None for i in range(4)]
 
@@ -71,11 +88,20 @@ class Node():
 	def move(self, direction, length):
 		self.pos = self.pos.nthPoint(direction, length)
 
+	def allNullnodes(self):
+		return [node for node in self.nexts if type(node) is NullNode]
+
+	def validNewTrackDirections(self):
+		return [vectorDir(self.pos, node.pos) for node in self.allNullnodes()]
+
+	def __repr__(self):
+		return str(id(self))[-4:] + " " + repr(self.pos)
+
 # Invariant: NullNode should have exactly 1 link to a non-NullNode
 class NullNode(Node):
 	RADIUS = 0
 	def __init__(self, pos):
-		super(NullNode, self).__init__(self, pos)
+		super(NullNode, self).__init__(pos)
 
 	def allPoints(self):
 		return [self.pos]
@@ -84,7 +110,7 @@ class NullNode(Node):
 		return
 
 	def getParent(self):
-		pass
+		return [node for node in self.nexts if node is not None][0]
 
 	def allPorts(self):
 		return [self.pos.nthPoint(i, NullNode.RADIUS + 1) for i in range(4)]
@@ -92,7 +118,7 @@ class NullNode(Node):
 class PointNode(Node):
 	RADIUS = 0
 	def __init__(self, pos):
-		super(PointNode, self).__init__(self, pos)
+		super(PointNode, self).__init__(pos)
 
 	def allPoints(self):
 		return [self.pos]
@@ -106,7 +132,7 @@ class PointNode(Node):
 class CurveNode(Node):
 	RADIUS = 1
 	def __init__(self, pos, orient):
-		super(CurveNode, self).__init__(self, pos)
+		super(CurveNode, self).__init__(pos)
 		self.orient = orient	# which direction is rightmost port
 
 	def allPoints(self):
@@ -121,7 +147,7 @@ class CurveNode(Node):
 class ThreewayNode(Node):
 	RADIUS = 1
 	def __init__(self, pos, orient, passState, default):
-		super(ThreewayNode, self).__init__(self, pos)
+		super(ThreewayNode, self).__init__(pos)
 		self.orient = orient		# which direction is rightmost port
 		self.passState = passState 	# can be either switched or blocked
 		self.default = default 		# should be either left or right
@@ -138,7 +164,7 @@ class ThreewayNode(Node):
 class FourwayNode(Node):
 	RADIUS = 1
 	def __init__(self, pos, passState):
-		super(FourwayNode, self).__init__(self, pos)
+		super(FourwayNode, self).__init__(pos)
 		self.passState = passState
 
 	def allPoints(self):
@@ -152,17 +178,17 @@ class FourwayNode(Node):
 
 class FourwayRegularNode(FourwayNode):
 	def __init__(self, pos, orient, passState):
-		super(FourwayRegularNode, self).__init__(self, pos, passState)
+		super(FourwayRegularNode, self).__init__(pos, passState)
 		self.orient = orient
 
 class FourwayIcyNode(FourwayNode):
 	def __init__(self, pos, orient, passState):
-		super(FourwayIcyNode, self).__init__(self, pos, passState)
+		super(FourwayIcyNode, self).__init__(pos, passState)
 		self.orient = orient
 
 class Fourway2PathsNode(FourwayNode):
 	def __init__(self, pos, orient, passState):
-		super(Fourway2PathsNode, self).__init__(self, pos, passState)
+		super(Fourway2PathsNode, self).__init__(pos, passState)
 		self.orient = orient
 
 class Edge():
@@ -172,10 +198,8 @@ class Edge():
 	def has1NullNode(self):
 		return len([type(n) is NullNode for n in self.bridge]) == 1
 
-	def getNullNode(self):
-		if self.has1NullNode():
-			return [type(n) is NullNode for n in self.bridge][0]
-		return None
+	def allNullnodes(self):
+		return [type(n) is NullNode for n in self.bridge]
 
 	def getNonNullNode(self):
 		if self.has1NullNode():
@@ -184,7 +208,15 @@ class Edge():
 
 	def getDirToNullNode(self):
 		if self.has1NullNode():
-			nullnode = self.getNullNode()
+			nullnode = self.allNullnodes()[0]
 			mainnode = self.getNonNullNode()
 			return vectorDir(mainnode.pos, nullnode.pos)
 		return None
+
+	def getNext(self, direction):
+		pass
+			
+	# TODO: this won't work
+	def validNewTrackDirections(self):
+		return [vectorDir(self.node1.pos, node.pos) for node in self.allNullnodes()]
+
