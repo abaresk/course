@@ -8,11 +8,11 @@ type Piece struct {
 }
 
 type PieceData interface {
-	GetPiece(Direction) *Piece
-	AddTrack(*Piece, Direction)
-	AddNode(*Piece, Direction)
-	LinkPiece(*Piece, *Piece, Direction)
-	RemovePiece(Direction)
+	getPiece(Direction) *Piece
+	addTrack(*Piece, Direction)
+	addNode(*Piece, Direction)
+	linkPiece(*Piece, *Piece, Direction)
+	removePiece(Direction)
 	reference(*Piece, Direction)
 	unreference(Direction)
 }
@@ -36,35 +36,39 @@ Pieces should be able to add a new node/track coming off a direction.
 Pieces must also remove tracks or nodes in a direction.
 */
 
+func (p *Piece) GetData() PieceData {
+	return p.d
+}
+
 func (p *Piece) GetPiece(dir Direction) *Piece {
-	return p.d.GetPiece(dir)
+	return p.d.getPiece(dir)
 }
 
 // Adds a track coming off the piece in Direction dir
 func (p *Piece) AddTrack(dir Direction) {
-	p.d.AddTrack(p, dir)
+	p.d.addTrack(p, dir)
 }
 
 // Adds a node coming off the piece in Direction dir
 func (p *Piece) AddNode(dir Direction) {
-	p.d.AddNode(p, dir)
+	p.d.addNode(p, dir)
 }
 
 // Link this piece to another piece in Direction dir
 // NOTE: should be the oppositie of RemovePiece
 func (p *Piece) LinkPiece(p2 *Piece, dir Direction) {
-	p.d.LinkPiece(p, p2, dir)
+	p.d.linkPiece(p, p2, dir)
 }
 
 // Unlinks this piece with neighbor piece in Direction dir
 func (p *Piece) RemovePiece(dir Direction) {
-	p.d.RemovePiece(dir)
+	p.d.removePiece(dir)
 }
 
 // Unlinks this piece with all its neighbors
 func (p *Piece) Delete() {
-	for i := Up; i < Right+1; i++ {
-		p.d.RemovePiece(i)
+	for i := Up; i <= Right; i++ {
+		p.d.removePiece(i)
 	}
 }
 
@@ -74,11 +78,11 @@ func (p *Piece) DeleteNeighbor(dir Direction) {
 	p2.Delete()
 }
 
-func (n *Node) GetPiece(dir Direction) *Piece {
+func (n *Node) getPiece(dir Direction) *Piece {
 	return n.nexts[dir]
 }
 
-func (t *Track) GetPiece(dir Direction) *Piece {
+func (t *Track) getPiece(dir Direction) *Piece {
 	return t.nexts[Dir2Trackport[dir]]
 }
 
@@ -91,24 +95,24 @@ func (p *Piece) unreference(dir Direction) {
 }
 
 // Implementations
-func (n *Node) AddTrack(p *Piece, dir Direction) {
+func (n *Node) addTrack(p *Piece, dir Direction) {
 	if n.nexts[dir] == nil {
-		t := NewTrack(Dir2Orient[dir])
+		t := newTrack(Dir2Orient[dir])
 		t.nexts[Dir2Trackport[dir].Plus(1)] = p
 		n.nexts[dir] = &Piece{t}
 	}
 }
 
-func (t *Track) AddTrack(p *Piece, dir Direction) {
+func (t *Track) addTrack(p *Piece, dir Direction) {
 	port := Dir2Trackport[dir]
 	if t.nexts[port] == nil {
-		t2 := NewTrack(t.orient)
+		t2 := newTrack(t.orient)
 		t2.nexts[port.Plus(1)] = p
 		t.nexts[port] = &Piece{t2}
 	}
 }
 
-func (n *Node) AddNode(p *Piece, dir Direction) {
+func (n *Node) addNode(p *Piece, dir Direction) {
 	if n.nexts[dir] == nil {
 		n2 := new(Node)
 		n2.nexts[dir.Plus(2)] = p
@@ -116,7 +120,7 @@ func (n *Node) AddNode(p *Piece, dir Direction) {
 	}
 }
 
-func (t *Track) AddNode(p *Piece, dir Direction) {
+func (t *Track) addNode(p *Piece, dir Direction) {
 	port := Dir2Trackport[dir]
 	if t.nexts[port] == nil {
 		n := new(Node)
@@ -125,14 +129,14 @@ func (t *Track) AddNode(p *Piece, dir Direction) {
 	}
 }
 
-func (n *Node) LinkPiece(p *Piece, p2 *Piece, dir Direction) {
+func (n *Node) linkPiece(p *Piece, p2 *Piece, dir Direction) {
 	if n.nexts[dir] == nil {
 		p2.reference(p, dir.Plus(2))
 		n.reference(p2, dir)
 	}
 }
 
-func (t *Track) LinkPiece(p *Piece, p2 *Piece, dir Direction) {
+func (t *Track) linkPiece(p *Piece, p2 *Piece, dir Direction) {
 	port := Dir2Trackport[dir]
 	if t.nexts[port] == nil {
 		p2.reference(p, dir.Plus(2))
@@ -140,14 +144,14 @@ func (t *Track) LinkPiece(p *Piece, p2 *Piece, dir Direction) {
 	}
 }
 
-func (n *Node) RemovePiece(dir Direction) {
+func (n *Node) removePiece(dir Direction) {
 	if n.nexts[dir] != nil {
 		n.nexts[dir].unreference(dir.Plus(2))
 		n.unreference(dir)
 	}
 }
 
-func (t *Track) RemovePiece(dir Direction) {
+func (t *Track) removePiece(dir Direction) {
 	port := Dir2Trackport[dir]
 	if t.nexts[port] != nil {
 		t.nexts[port].unreference(dir.Plus(2))
@@ -174,14 +178,14 @@ func (t *Track) unreference(dir Direction) {
 }
 
 // Creators
-func NewTrack(orient Orientation) *Track {
+func newTrack(orient Orientation) *Track {
 	t := new(Track)
 	t.orient = orient
 	return t
 }
 
 func NewTrackPiece(orient Orientation) *Piece {
-	return &Piece{NewTrack(orient)}
+	return &Piece{newTrack(orient)}
 }
 
 func NewNodePiece() *Piece {

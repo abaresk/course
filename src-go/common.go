@@ -14,8 +14,8 @@ const (
 	Right
 )
 
-func (dir Direction) Plus(c Direction) Direction {
-	return (dir + c) % 4
+func (dir Direction) Plus(c int) Direction {
+	return Direction(modulo(int(dir)+c, 4))
 }
 
 const (
@@ -23,8 +23,8 @@ const (
 	Backward
 )
 
-func (port Trackport) Plus(c Trackport) Trackport {
-	return (port + c) % 2
+func (port Trackport) Plus(c int) Trackport {
+	return Trackport(modulo(int(port)+c, 2))
 }
 
 const (
@@ -58,24 +58,30 @@ var Port2Dir = map[Port]Direction{
 	Port{Horizontal, Backward}: Left,
 }
 
-const (
-	TypeTrack PieceType = iota
-	TypeNode
-)
+var UnitVector = map[Direction]Point{
+	Up:    Point{0, 1},
+	Left:  Point{-1, 0},
+	Down:  Point{0, -1},
+	Right: Point{1, 0},
+}
 
 type Point struct {
 	x, y int
 }
 
-func (p *Point) Add(other *Point) Point {
+func (p Point) Add(other Point) Point {
 	return Point{p.x + other.x, p.y + other.y}
 }
 
-func (p *Point) Sub(other *Point) Point {
+func (p Point) Sub(other Point) Point {
 	return Point{p.x - other.x, p.y - other.y}
 }
 
-func (p *Point) DirTo(other *Point) (Direction, bool) {
+func (p Point) Scale(c int) Point {
+	return Point{p.x * c, p.y * c}
+}
+
+func (p Point) DirTo(other Point) (Direction, bool) {
 	diff := other.Sub(p)
 	if diff.x == 0 && diff.y > 0 {
 		return Up, true
