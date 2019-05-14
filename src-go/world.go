@@ -11,7 +11,8 @@ package course
 Stuff World should do:
 	- Add Piece at a specified point (check for potential merges)
 		* Check for validity. If invalid, do nothing
-	- Delete piece at a point at a specified layer (default layer == 0)
+	- Get Piece at a point at a specific layer (default layer == 0)
+	- Delete Piece at a point at a specified layer (default layer == 0)
 */
 type World struct {
 	pmap *Pointmap
@@ -43,6 +44,32 @@ func (w *World) AddTrack(point Point, orient Orientation) {
 	t := NewTrackPiece(orient)
 	w.pmap.Add(point, t)
 	w.makeMerges(t, point, trackPorts(point, orient))
+}
+
+func (w *World) Get(point Point, layer int) Item {
+	var out Item
+	l := w.pmap.Get(point)
+	if layer >= 0 && layer < len(l) {
+		out = l[layer]
+	}
+	return out
+}
+
+// Used to get a piece at a point and layer. Returns nil
+// if there is no *Piece located there
+func (w *World) GetPiece(point Point, layer int) *Piece {
+	item := w.Get(point, layer)
+	piece, _ := item.(*Piece)
+	return piece
+}
+
+// You can only delete Pieces (not NodeBody's)
+func (w *World) Delete(point Point, layer int) {
+	item := w.Get(point, layer)
+	switch item.(type) {
+	case (*Piece):
+		item.(*Piece).Delete()
+	}
 }
 
 // There should be no Pieces in the node's territory

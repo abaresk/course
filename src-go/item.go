@@ -1,6 +1,6 @@
 /*
 Supplementary to World and Pointmap
-Pointmap stores mapPieces, which are either *Piece (see: pieces.go) or *NodeBody
+Pointmap stores Items, which are either *Piece (see: pieces.go) or *NodeBody
 
 *NodeBody is essentially a dummy piece that refers back to the Node it belongs to
 */
@@ -8,25 +8,25 @@ Pointmap stores mapPieces, which are either *Piece (see: pieces.go) or *NodeBody
 package course
 
 // *Piece and *Nodebody implement this interface
-type mapPiece interface {
-	isMapPiece()
+type Item interface {
+	isItem()
 }
 
 type NodeBody struct {
 	center *Piece
 }
 
-func (n *NodeBody) isMapPiece() {}
-func (p *Piece) isMapPiece()    {}
+func (n *NodeBody) isItem() {}
+func (p *Piece) isItem()    {}
 
-func extractPiece(m mapPiece) (*Piece, bool) {
+func extractPiece(m Item) (*Piece, bool) {
 	if piece, isPiece := m.(*Piece); isPiece {
 		return piece, true
 	}
 	return nil, false
 }
 
-func extractTrack(m mapPiece) (*Track, bool) {
+func extractTrack(m Item) (*Track, bool) {
 	if piece, isPiece := extractPiece(m); isPiece {
 		if track, isTrack := piece.GetData().(*Track); isTrack {
 			return track, true
@@ -35,7 +35,7 @@ func extractTrack(m mapPiece) (*Track, bool) {
 	return nil, false
 }
 
-func extractNode(m mapPiece) (*Node, bool) {
+func extractNode(m Item) (*Node, bool) {
 	if piece, isPiece := extractPiece(m); isPiece {
 		if node, isNode := piece.GetData().(*Node); isNode {
 			return node, true

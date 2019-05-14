@@ -1,6 +1,8 @@
 package course
 
-import "testing"
+import (
+	"testing"
+)
 
 /*
 Create the following:
@@ -108,12 +110,12 @@ func TestMisalignedNodes(t *testing.T) {
 
 	w.AddNode(Point{0, 0})
 	w.AddNode(Point{3, 0})
-	w.AddNode(Point{-3, 1})
+	w.AddNode(Point{1, -3})
 
 	if n1 := w.pmap.Get(Point{0, 0})[0].(*Piece); n1 != n1.GetPiece(Right).GetPiece(Left) {
 		t.Fatalf("Nodes should have connected")
 	}
-	for _, n := range w.pmap.Get(Point{-3, 1})[0].(*Piece).GetData().(*Node).nexts {
+	for _, n := range w.pmap.Get(Point{1, -3})[0].(*Piece).GetData().(*Node).nexts {
 		if n != nil {
 			t.Fatalf("Misaligned node should not be connected to other nodes")
 		}
@@ -121,7 +123,7 @@ func TestMisalignedNodes(t *testing.T) {
 }
 
 /*
-Crate a track overlap.
+Create a track overlap.
 Add a connecting track (make sure it merges to the correct one)
 Add parallel track. Then add crossover to parallel track (make sure it merges with the other)
 
@@ -150,5 +152,27 @@ func TestTrackOverlap(t *testing.T) {
 	w.AddTrack(Point{-1, 0}, Horizontal)
 	if w.pmap.Get(Point{-1, 0})[1].(*Piece).GetPiece(Right).GetData().(*Track).orient != Horizontal {
 		t.Fatalf("New track merged with wrong track")
+	}
+}
+
+func TestAddRemovePieces(t *testing.T) {
+	w := new(World)
+	w.Init()
+
+	w.AddNode(Point{0, 0})
+	w.AddTrack(Point{2, 0}, Horizontal)
+	w.AddTrack(Point{0, 2}, Vertical)
+
+	n := w.GetPiece(Point{0, 0}, 0)
+	tr1 := w.GetPiece(Point{2, 0}, 0)
+	tr2 := w.GetPiece(Point{0, 2}, 0)
+
+	if tr1.GetPiece(Left) != n || tr2.GetPiece(Down) != n {
+		t.Fatalf("Tracks didn't bind to node")
+	}
+
+	w.Delete(Point{0, 0}, 0)
+	if tr1.GetPiece(Left) != nil || tr2.GetPiece(Down) != nil {
+		t.Fatalf("Tracks didn't unbind to node")
 	}
 }
