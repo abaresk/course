@@ -18,9 +18,10 @@ func (p *Pointmap) Add(point Point, piece Item) {
 	p.pieces[piece] = point
 }
 
-func (p *Pointmap) Remove(piece Item) {
-	removePieceFromSlice(p.Get(p.Find(piece)), piece)
-	delete(p.pieces, piece)
+func (p *Pointmap) Remove(item Item) {
+	point := p.Find(item)
+	p.points[point] = removePieceFromSlice(p.Get(point), item)
+	delete(p.pieces, item)
 }
 
 func (p *Pointmap) Get(point Point) ItemSlice {
@@ -31,13 +32,14 @@ func (p *Pointmap) Find(piece Item) Point {
 	return p.pieces[piece]
 }
 
-func removePieceFromSlice(l ItemSlice, piece Item) {
+func removePieceFromSlice(l ItemSlice, piece Item) ItemSlice {
 	for i, v := range l {
 		if piece == v {
 			l[i] = l[len(l)-1]
 			l[len(l)-1] = nil
 			l = l[:len(l)-1]
-			return
+			return l
 		}
 	}
+	return l
 }

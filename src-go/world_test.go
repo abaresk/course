@@ -175,4 +175,17 @@ func TestAddRemovePieces(t *testing.T) {
 	if tr1.GetPiece(Left) != nil || tr2.GetPiece(Down) != nil {
 		t.Fatalf("Tracks didn't unbind to node")
 	}
+
+	if anyItemsInNodeTerritory(w, Point{0, 0}) || len(w.pmap.pieces) > 2 {
+		t.Fatalf("Node and NodeBody's weren't all removed from pointmap")
+	}
+}
+
+func anyItemsInNodeTerritory(w *World, point Point) bool {
+	for _, t := range nodeTerritory(point) {
+		if len(w.pmap.Get(t)) > 0 {
+			return true
+		}
+	}
+	return false
 }

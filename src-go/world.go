@@ -65,11 +65,23 @@ func (w *World) GetPiece(point Point, layer int) *Piece {
 
 // You can only delete Pieces (not NodeBody's)
 func (w *World) Delete(point Point, layer int) {
-	item := w.Get(point, layer)
-	switch item.(type) {
-	case (*Piece):
-		item.(*Piece).Delete()
+	var piece *Piece
+	if piece = w.GetPiece(point, layer); piece == nil {
+		return
 	}
+
+	// Delete all NodeBody's
+	if _, ok := piece.d.(*Node); ok {
+		for _, t := range nodeTerritory(point) {
+			w.remove(w.Get(t, 0))
+		}
+	}
+	w.remove(piece)
+	piece.Delete()
+}
+
+func (w *World) remove(item Item) {
+	w.pmap.Remove(item)
 }
 
 // There should be no Pieces in the node's territory
