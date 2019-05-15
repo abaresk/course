@@ -20,35 +20,35 @@ type World struct {
 
 func (w *World) Init() {
 	w.pmap = new(Pointmap)
-	w.pmap.Init()
+	w.pmap.init()
 }
 
-func (w *World) AddNode(point Point) {
-	if !w.validNodePoint(point) {
+func (w *World) AddNode(point Point, arg NodeArg) {
+	var n Node
+	if n = NewNode(arg); n == nil || !w.validNodePoint(n, point) {
 		return
 	}
-	n := NewNodePiece()
-	w.pmap.Add(point, n)
-	for _, p := range nodeTerritory(point) {
+	w.pmap.add(point, n)
+	for _, p := range n.nodeTerritory(point) {
 		if p != point {
-			w.pmap.Add(p, &NodeBody{n})
+			w.pmap.add(p, &NodeBody{n})
 		}
 	}
-	w.makeMerges(n, point, nodePorts(point))
+	w.makeMerges(n, point)
 }
 
 func (w *World) AddTrack(point Point, orient Orientation) {
 	if !w.validTrackPoint(point, orient) {
 		return
 	}
-	t := NewTrackPiece(orient)
-	w.pmap.Add(point, t)
-	w.makeMerges(t, point, trackPorts(point, orient))
+	t := NewTrack(orient)
+	w.pmap.add(point, t)
+	w.makeMerges(t, point)
 }
 
 func (w *World) Get(point Point, layer int) Item {
 	var out Item
-	l := w.pmap.Get(point)
+	l := w.pmap.get(point)
 	if layer >= 0 && layer < len(l) {
 		out = l[layer]
 	}
@@ -57,37 +57,33 @@ func (w *World) Get(point Point, layer int) Item {
 
 // Used to get a piece at a point and layer. Returns nil
 // if there is no *Piece located there
-func (w *World) GetPiece(point Point, layer int) *Piece {
+func (w *World) GetPiece(point Point, layer int) Piece {
 	item := w.Get(point, layer)
-	piece, _ := item.(*Piece)
+	piece, _ := item.(Piece)
 	return piece
 }
 
 // You can only delete Pieces (not NodeBody's)
 func (w *World) Delete(point Point, layer int) {
-	var piece *Piece
+	var piece Piece
 	if piece = w.GetPiece(point, layer); piece == nil {
 		return
 	}
 
 	// Delete all NodeBody's
-	if _, ok := piece.d.(*Node); ok {
-		for _, t := range nodeTerritory(point) {
-			w.remove(w.Get(t, 0))
+	if _, ok := piece.(Node); ok {
+		for _, t := range piece.(Node).nodeTerritory(point) {
+			w.pmap.remove(w.Get(t, 0))
 		}
 	}
-	w.remove(piece)
-	piece.Delete()
-}
-
-func (w *World) remove(item Item) {
-	w.pmap.Remove(item)
+	w.pmap.remove(piece)
+	erase(piece)
 }
 
 // There should be no Pieces in the node's territory
-func (w *World) validNodePoint(point Point) bool {
-	for _, p := range nodeTerritory(point) {
-		if len(w.pmap.Get(p)) != 0 {
+func (w *World) validNodePoint(n Node, point Point) bool {
+	for _, p := range n.nodeTerritory(point) {
+		if len(w.pmap.get(p)) != 0 {
 			return false
 		}
 	}
@@ -101,12 +97,12 @@ func (w *World) validNodePoint(point Point) bool {
 // 	──|──
 //	  |
 func (w *World) validTrackPoint(point Point, orient Orientation) bool {
-	l := w.pmap.Get(point)
+	l := w.pmap.get(point)
 	if len(l) == 0 {
 		return true
 	}
 	if len(l) == 1 {
-		if t, ok := extractTrack(l[0]); ok {
+		if t, ok := l[0].(*Track); ok {
 			return orient != t.orient
 		}
 	}
@@ -126,9 +122,10 @@ Merge checking:
 // p == piece you're trying to merge
 // point == center point of Track or Node
 // ports == boundary of Track or Node
-func (w *World) makeMerges(p *Piece, point Point, ports []Point) {
+func (w *World) makeMerges(p Piece, point Point) {
+	ports := p.ports(point)
 	for _, port := range ports {
-		l := w.pmap.Get(port)
+		l := w.pmap.get(port)
 	Loop:
 		for _, item := range l {
 			switch item.(type) {
@@ -136,8 +133,8 @@ func (w *World) makeMerges(p *Piece, point Point, ports []Point) {
 				if merged := w.mergeNodeBody(p, item.(*NodeBody), point); merged {
 					break Loop
 				}
-			case *Piece:
-				if merged := w.mergePiece(p, item.(*Piece), point); merged {
+			case Piece:
+				if merged := w.mergePiece(p, item.(Piece), point); merged {
 					break Loop
 				}
 			}
@@ -145,55 +142,20 @@ func (w *World) makeMerges(p *Piece, point Point, ports []Point) {
 	}
 }
 
-func (w *World) mergeNodeBody(p *Piece, b *NodeBody, center Point) bool {
-	nodeCenter := w.pmap.Find(b.center)
+func (w *World) mergeNodeBody(p Piece, b *NodeBody, center Point) bool {
+	nodeCenter := w.pmap.find(b.center)
 	if dir, aligned := nodeCenter.DirTo(center); aligned {
-		b.center.LinkPiece(p, dir)
+		linkPieces(b.center, p, dir)
 		return true
 	}
 	return false
 }
 
-func (w *World) mergePiece(p, portPiece *Piece, center Point) bool {
-	itemCenter := w.pmap.Find(portPiece)
-	switch portPiece.GetData().(type) {
-	case *Node:
-		if dir, aligned := itemCenter.DirTo(center); aligned {
-			portPiece.LinkPiece(p, dir)
-			return true
-		}
-	case *Track:
-		track := portPiece.GetData().(*Track)
-		if dir, aligned := itemCenter.DirTo(center); aligned && track.orient == Dir2Orient[dir] {
-			portPiece.LinkPiece(p, dir)
-			return true
-		}
+func (w *World) mergePiece(p, portPiece Piece, center Point) bool {
+	itemCenter := w.pmap.find(portPiece)
+	if dir, aligned := itemCenter.DirTo(center); aligned {
+		linkPieces(portPiece, p, dir)
+		return true
 	}
 	return false
-}
-
-// Box of radius 1 surrounding the node
-func nodeTerritory(point Point) []Point {
-	radius := 1
-	out := []Point{}
-	for x := point.x - radius; x <= point.x+radius; x++ {
-		for y := point.y - radius; y <= point.y+radius; y++ {
-			out = append(out, Point{x, y})
-		}
-	}
-	return out
-}
-
-func nodePorts(point Point) []Point {
-	radius := 1
-	out := []Point{}
-	for dir := Up; dir <= Right; dir++ {
-		out = append(out, point.Add(UnitVector[dir].Scale(radius+1)))
-	}
-	return out
-}
-
-func trackPorts(point Point, orient Orientation) []Point {
-	v := UnitVector[Port2Dir[Port{orient, Forward}]]
-	return []Point{point.Add(v), point.Add(v.Scale(-1))}
 }

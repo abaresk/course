@@ -18,9 +18,13 @@ func (dir Direction) Plus(c int) Direction {
 	return Direction(modulo(int(dir)+c, 4))
 }
 
+func (dir Direction) Minus(c int) Direction {
+	return Direction(modulo(int(dir)-c, 4))
+}
+
 const (
-	Forward Trackport = iota
-	Backward
+	Backward Trackport = iota
+	Forward
 )
 
 func (port Trackport) Plus(c int) Trackport {

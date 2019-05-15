@@ -27,12 +27,12 @@ func TestMakeLoop(t *testing.T) {
 	w.AddNode(Point{0, 4})
 	w.AddTrack(Point{0, 2}, Vertical)
 
-	tr1, tr2 := w.pmap.Get(Point{0, 0})[0].(*Piece).GetPiece(Up), w.pmap.Get(Point{0, 4})[0].(*Piece).GetPiece(Down)
+	tr1, tr2 := w.pmap.Get(Point{0, 0})[0].(*Piece).getNext(Up), w.pmap.Get(Point{0, 4})[0].(*Piece).getNext(Down)
 	if tr1 != tr2 {
 		t.Fatalf("Improper merging at end of loop")
 	}
 
-	n1, n2 := w.pmap.Get(Point{0, 2})[0].(*Piece).GetPiece(Down), w.pmap.Get(Point{2, 0})[0].(*Piece).GetPiece(Left)
+	n1, n2 := w.pmap.Get(Point{0, 2})[0].(*Piece).getNext(Down), w.pmap.Get(Point{2, 0})[0].(*Piece).getNext(Left)
 	if n1 != n2 {
 		t.Fatalf("Improper merging at end of loop")
 	}
@@ -87,7 +87,7 @@ func TestNodeChain(t *testing.T) {
 
 	// try to get at 5 from each side
 	n4, n3 := w.pmap.Get(Point{0, 0})[0].(*Piece), w.pmap.Get(Point{6, 3})[0].(*Piece)
-	if n4.GetPiece(Up).GetPiece(Right).GetPiece(Down) != n3.GetPiece(Down).GetPiece(Left) {
+	if n4.getNext(Up).getNext(Right).getNext(Down) != n3.getNext(Down).getNext(Left) {
 		t.Fatalf("Node chain isn't connected properly")
 	}
 
@@ -112,7 +112,7 @@ func TestMisalignedNodes(t *testing.T) {
 	w.AddNode(Point{3, 0})
 	w.AddNode(Point{1, -3})
 
-	if n1 := w.pmap.Get(Point{0, 0})[0].(*Piece); n1 != n1.GetPiece(Right).GetPiece(Left) {
+	if n1 := w.pmap.Get(Point{0, 0})[0].(*Piece); n1 != n1.getNext(Right).getNext(Left) {
 		t.Fatalf("Nodes should have connected")
 	}
 	for _, n := range w.pmap.Get(Point{1, -3})[0].(*Piece).GetData().(*Node).nexts {
@@ -144,13 +144,13 @@ func TestTrackOverlap(t *testing.T) {
 
 	// Connecting vertically
 	w.AddTrack(Point{0, 1}, Vertical)
-	if w.pmap.Get(Point{0, 1})[0].(*Piece).GetPiece(Down).GetData().(*Track).orient != Vertical {
+	if w.pmap.Get(Point{0, 1})[0].(*Piece).getNext(Down).GetData().(*Track).orient != Vertical {
 		t.Fatalf("New track merged with wrong track")
 	}
 
 	w.AddTrack(Point{-1, 0}, Vertical)
 	w.AddTrack(Point{-1, 0}, Horizontal)
-	if w.pmap.Get(Point{-1, 0})[1].(*Piece).GetPiece(Right).GetData().(*Track).orient != Horizontal {
+	if w.pmap.Get(Point{-1, 0})[1].(*Piece).getNext(Right).GetData().(*Track).orient != Horizontal {
 		t.Fatalf("New track merged with wrong track")
 	}
 }
@@ -163,16 +163,16 @@ func TestAddRemovePieces(t *testing.T) {
 	w.AddTrack(Point{2, 0}, Horizontal)
 	w.AddTrack(Point{0, 2}, Vertical)
 
-	n := w.GetPiece(Point{0, 0}, 0)
-	tr1 := w.GetPiece(Point{2, 0}, 0)
-	tr2 := w.GetPiece(Point{0, 2}, 0)
+	n := w.getNext(Point{0, 0}, 0)
+	tr1 := w.getNext(Point{2, 0}, 0)
+	tr2 := w.getNext(Point{0, 2}, 0)
 
-	if tr1.GetPiece(Left) != n || tr2.GetPiece(Down) != n {
+	if tr1.getNext(Left) != n || tr2.getNext(Down) != n {
 		t.Fatalf("Tracks didn't bind to node")
 	}
 
 	w.Delete(Point{0, 0}, 0)
-	if tr1.GetPiece(Left) != nil || tr2.GetPiece(Down) != nil {
+	if tr1.getNext(Left) != nil || tr2.getNext(Down) != nil {
 		t.Fatalf("Tracks didn't unbind to node")
 	}
 

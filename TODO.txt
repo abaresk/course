@@ -1,7 +1,13 @@
-point selected to currPiece
+ Different Node Pieces
+    - World should call AddNode(point, NodeArg)
+        Type        Orientation
+        -----------------------
+        full        n/a
+        half        Up | Left | Down | Right    (Direction)
+        curve       one | two | three | four    (Quadrant)
 
-fix getNewDirection
+        - type NodeArg struct {
+            type, Orientation
+        }
 
-flesh out goToNext
-
-link and test save.py
+ Adding Items and Enemies to the Course

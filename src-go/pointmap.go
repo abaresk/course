@@ -8,27 +8,27 @@ type Pointmap struct {
 	pieces map[Item]Point
 }
 
-func (p *Pointmap) Init() {
+func (p *Pointmap) init() {
 	p.points = make(map[Point]ItemSlice)
 	p.pieces = make(map[Item]Point)
 }
 
-func (p *Pointmap) Add(point Point, piece Item) {
+func (p *Pointmap) add(point Point, piece Item) {
 	p.points[point] = append(p.points[point], piece)
 	p.pieces[piece] = point
 }
 
-func (p *Pointmap) Remove(item Item) {
-	point := p.Find(item)
-	p.points[point] = removePieceFromSlice(p.Get(point), item)
+func (p *Pointmap) remove(item Item) {
+	point := p.find(item)
+	p.points[point] = removePieceFromSlice(p.get(point), item)
 	delete(p.pieces, item)
 }
 
-func (p *Pointmap) Get(point Point) ItemSlice {
+func (p *Pointmap) get(point Point) ItemSlice {
 	return p.points[point]
 }
 
-func (p *Pointmap) Find(piece Item) Point {
+func (p *Pointmap) find(piece Item) Point {
 	return p.pieces[piece]
 }
 
