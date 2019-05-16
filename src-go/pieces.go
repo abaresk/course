@@ -213,11 +213,11 @@ func NewTrack(orient Orientation) *Track {
 func NewNode(arg NodeArg) Node {
 	switch arg.(type) {
 	case FullNodeArg:
-		return &FullNode{}
+		return &FullNode{radius: 1}
 	case HalfNodeArg:
-		return &HalfNode{dir: arg.(HalfNodeArg).dir}
+		return &HalfNode{radius: 1, dir: arg.(HalfNodeArg).dir}
 	case CurveNodeArg:
-		return &CurveNode{quad: arg.(CurveNodeArg).quad}
+		return &CurveNode{radius: 1, quad: arg.(CurveNodeArg).quad}
 	}
 	return nil
 }

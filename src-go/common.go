@@ -4,7 +4,15 @@ type (
 	Direction   int
 	Trackport   int
 	Orientation int
+	Quadrant    int
 	PieceType   int
+)
+
+const (
+	One Quadrant = iota
+	Two
+	Three
+	Four
 )
 
 const (
@@ -27,10 +35,6 @@ const (
 	Forward
 )
 
-func (port Trackport) Plus(c int) Trackport {
-	return Trackport(modulo(int(port)+c, 2))
-}
-
 const (
 	Vertical Orientation = iota
 	Horizontal
@@ -41,13 +45,6 @@ var Dir2Orient = map[Direction]Orientation{
 	Left:  Horizontal,
 	Down:  Vertical,
 	Right: Horizontal,
-}
-
-var Dir2Trackport = map[Direction]Trackport{
-	Up:    Forward,
-	Left:  Backward,
-	Down:  Backward,
-	Right: Forward,
 }
 
 type Port struct {

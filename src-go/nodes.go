@@ -1,14 +1,5 @@
 package course
 
-type Quadrant int
-
-const (
-	One Quadrant = iota
-	Two
-	Three
-	Four
-)
-
 type NodeArg interface {
 	isNodeArg()
 }

@@ -153,7 +153,8 @@ func (w *World) mergeNodeBody(p Piece, b *NodeBody, center Point) bool {
 
 func (w *World) mergePiece(p, portPiece Piece, center Point) bool {
 	itemCenter := w.pmap.find(portPiece)
-	if dir, aligned := itemCenter.DirTo(center); aligned {
+	track, isTrack := portPiece.(*Track)
+	if dir, aligned := itemCenter.DirTo(center); aligned && (!isTrack || track.orient == Dir2Orient[dir]) {
 		linkPieces(portPiece, p, dir)
 		return true
 	}
