@@ -204,6 +204,112 @@ func TestAddRemovePieces(t *testing.T) {
 	}
 }
 
+/*
+Make 3/4 of circle. Add the 4th curve, but facing wrong way (shouldn't connect w/ neighbors).
+Try to add new one on top of it (shouldn't work).
+Remove old 4th curve and add the proper one.
+*/
+func TestCurveCircle(t *testing.T) {
+	w := new(World)
+	w.Init()
+
+	// Make a circle
+	w.AddNode(Point{0, 0}, CurveNodeArg{Two})
+	w.AddNode(Point{-3, 0}, CurveNodeArg{One})
+	w.AddNode(Point{0, 3}, CurveNodeArg{Three})
+
+	s1 := w.Get(Point{-3, 0}, 0).(Piece)
+	s2 := w.Get(Point{0, 0}, 0).(Piece)
+	s3 := w.Get(Point{0, 3}, 0).(Piece)
+
+	if u, _ := s1.getNext(Right); u != s2 {
+		t.Fatalf("Curves didn't connect properly")
+	}
+
+	if u, _ := s2.getNext(Up); u != s3 {
+		t.Fatalf("Curves didn't connect properly")
+	}
+
+	if u, _ := s2.getNext(Left); u != s1 {
+		t.Fatalf("Curves didn't connect properly")
+	}
+
+	w.AddNode(Point{-3, 3}, CurveNodeArg{Two}) // invalid; it should not merge with either
+	s4 := w.Get(Point{-3, 3}, 0).(Piece)
+	if u, _ := s4.getNext(Up); u != nil {
+		t.Fatalf("This curve should not have connected to anything")
+	}
+
+	w.AddNode(Point{-3, 3}, CurveNodeArg{Four}) // invalid; should not be placed (something's already there)
+	if len(w.pmap.get(Point{-3, 3})) != 1 {
+		t.Fatalf("The above node should not have been allowed to be placed")
+	}
+
+	w.Delete(Point{-3, 3}, 0)
+	w.AddNode(Point{-3, 3}, CurveNodeArg{Four}) // works!
+	s5 := w.Get(Point{-3, 3}, 0).(Piece)
+	if u, _ := s5.getNext(Down); u != s1 {
+		t.Fatalf("Curves didn't connect properly")
+	}
+
+	if u, _ := s5.getNext(Right); u != s3 {
+		t.Fatalf("Curves didn't connect properly")
+	}
+
+	if u, _ := s1.getNext(Up); u != s5 {
+		t.Fatalf("Curves didn't connect properly")
+	}
+}
+
+/*
+Create the following:
+	   t
+	   n
+	mmnnnmm
+	m     m
+	n     n
+	nntttnn
+
+Then delete the HalfNode
+*/
+func TestHalfNodeLoop(t *testing.T) {
+	w := new(World)
+	w.Init()
+
+	w.AddTrack(Point{3, 5}, Vertical)
+	w.AddNode(Point{3, 3}, HalfNodeArg{Up})
+	w.AddNode(Point{0, 3}, CurveNodeArg{Four})
+	w.AddNode(Point{0, 0}, CurveNodeArg{One})
+	w.AddTrack(Point{2, 0}, Horizontal)
+	w.AddTrack(Point{3, 0}, Horizontal)
+	w.AddTrack(Point{4, 0}, Horizontal)
+	w.AddNode(Point{6, 0}, CurveNodeArg{Two})
+	w.AddNode(Point{6, 3}, CurveNodeArg{Three})
+
+	s1 := w.Get(Point{3, 3}, 0).(Piece)
+	s2 := w.Get(Point{3, 5}, 0).(Piece)
+	s3 := w.Get(Point{0, 3}, 0).(Piece)
+	s4 := w.Get(Point{6, 3}, 0).(Piece)
+	if u, _ := s1.getNext(Up); u != s2 {
+		t.Fatalf("HalfNode didn't connect properly")
+	}
+	if u, _ := s2.getNext(Down); u != s1 {
+		t.Fatalf("HalfNode didn't connect properly")
+	}
+	if u, _ := s3.getNext(Right); u != s1 {
+		t.Fatalf("HalfNode didn't connect properly")
+	}
+	if u, _ := s1.getNext(Left); u != s3 {
+		t.Fatalf("HalfNode didn't connect properly")
+	}
+	if u, _ := s1.getNext(Right); u != s4 {
+		t.Fatalf("HalfNode didn't connect properly")
+	}
+	if u, _ := s4.getNext(Left); u != s1 {
+		t.Fatalf("HalfNode didn't connect properly")
+	}
+}
+
 func anyItemsInNodeTerritory(w *World, point Point, n Node) bool {
 	for _, t := range n.nodeTerritory(point) {
 		if len(w.pmap.get(t)) > 0 {

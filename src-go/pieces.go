@@ -157,7 +157,7 @@ func (n *HalfNode) ports(point Point) []Point {
 func (n *CurveNode) ports(point Point) []Point {
 	out := []Point{}
 	for i := 0; i < 2; i++ {
-		out = append(out, point.Add(UnitVector[Direction(n.quad).Plus(i)]))
+		out = append(out, point.Add(UnitVector[Direction(n.quad).Minus(i)].Scale(n.radius+1)))
 	}
 	return out
 }
@@ -183,7 +183,7 @@ func (n *CurveNode) getIndex(dir Direction) (int, bool) {
 	switch Direction(n.quad) {
 	case dir:
 		return 0, true
-	case dir.Minus(1):
+	case dir.Plus(1):
 		return 1, true
 	default:
 		return 0, false
