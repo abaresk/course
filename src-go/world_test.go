@@ -308,6 +308,15 @@ func TestHalfNodeLoop(t *testing.T) {
 	if u, _ := s4.getNext(Left); u != s1 {
 		t.Fatalf("HalfNode didn't connect properly")
 	}
+
+	// Now remove HalfNode
+	w.Delete(Point{3, 3}, 0)
+	if u, _ := s2.getNext(Down); u != nil {
+		t.Fatalf("HalfNode didn't disconnect properly")
+	}
+	if len(w.pmap.pieces) != 20 {
+		t.Fatalf("HalfNode wasn't removed properly")
+	}
 }
 
 func anyItemsInNodeTerritory(w *World, point Point, n Node) bool {
