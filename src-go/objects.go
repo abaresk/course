@@ -1,6 +1,7 @@
 /*
 Supplementary to World and Pointmap
-Pointmap stores Objects, which are either *Piece (see: pieces.go) or *NodeBody
+Pointmap stores Objects, which are either ObjectPieces (Piece and *NodeBody),
+ObjectEnemy's or ObjectItem's.
 
 *NodeBody is essentially a dummy piece that refers back to the Node it belongs to
 */
@@ -12,18 +13,21 @@ type ObjectType int
 // Listed from lowest priority value to highest
 const (
 	ObjectPiece ObjectType = iota
+	ObjectTrackItem
 	ObjectEnemy
-	ObjectItem
+	ObjectPowerUp
 )
 
 func getObjectType(ob Object) ObjectType {
 	switch ob.(type) {
 	case Piece, *NodeBody:
 		return ObjectPiece
+	case TrackItem:
+		return ObjectTrackItem
 	case EnemyPart:
 		return ObjectEnemy
-	case Item:
-		return ObjectItem
+	case PowerUp:
+		return ObjectPowerUp
 	}
 	return ObjectType(MaxInt)
 }
@@ -42,3 +46,13 @@ func (n *HalfNode) isObject()  {}
 func (n *CurveNode) isObject() {}
 func (t *Track) isObject()     {}
 func (n *NodeBody) isObject()  {}
+
+func (i *Portal) isObject()      {}
+func (i *TrackSwitch) isObject() {}
+func (i *Sludge) isObject()      {}
+
+func (e *ZapperPart) isObject()    {}
+func (e *ChristinePart) isObject() {}
+
+func (i *Phaser) isObject()     {}
+func (i *TimeSlower) isObject() {}

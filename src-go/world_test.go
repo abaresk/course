@@ -319,6 +319,16 @@ func TestHalfNodeLoop(t *testing.T) {
 	}
 }
 
+func TestAddItems(t *testing.T) {
+	w := new(World)
+	w.Init()
+}
+
+func TestAddEnemies(t *testing.T) {
+	w := new(World)
+	w.Init()
+}
+
 func anyObjectsInNodeTerritory(w *World, point Point, n Node) bool {
 	for _, t := range n.nodeTerritory(point) {
 		if len(*w.pmap.get(t)) > 0 {

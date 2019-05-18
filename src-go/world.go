@@ -43,6 +43,30 @@ func (w *World) AddTrack(point Point, orient Orientation) {
 	w.makeMerges(t, point)
 }
 
+func (w *World) AddEnemy(point Point, arg EnemyArg) {
+	if !w.validItemPoint(point) {
+		return
+	}
+	e := NewEnemy(arg)
+	w.pmap.add(point, e)
+}
+
+func (w *World) AddTrackItem(point Point, arg TrackItemArg) {
+	if !w.validItemPoint(point) {
+		return
+	}
+	i := NewTrackItem(arg)
+	w.pmap.add(point, i)
+}
+
+func (w *World) AddPowerUp(point Point, arg PowerUpArg) {
+	if !w.validItemPoint(point) {
+		return
+	}
+	i := NewPowerUp(arg)
+	w.pmap.add(point, i)
+}
+
 func (w *World) Get(point Point, layer int) Object {
 	var out Object
 	l := *w.pmap.get(point)
@@ -101,6 +125,17 @@ func (w *World) validTrackPoint(point Point, orient Orientation) bool {
 	if len(l) == 1 {
 		if t, ok := l[0].(*Track); ok {
 			return orient != t.orient
+		}
+	}
+	return false
+}
+
+// There must be at least 1 Piece in order to place (*Nodebody's don't count)
+func (w *World) validItemPoint(point Point) bool {
+	l := w.pmap.getObjectPieces(point)
+	for _, v := range l {
+		if _, ok := v.(Piece); ok {
+			return true
 		}
 	}
 	return false

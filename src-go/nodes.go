@@ -4,15 +4,15 @@ type NodeArg interface {
 	isNodeArg()
 }
 
-type FullNodeArg struct{}
-
-type HalfNodeArg struct {
-	dir Direction
-}
-
-type CurveNodeArg struct {
-	quad Quadrant
-}
+type (
+	FullNodeArg struct{}
+	HalfNodeArg struct {
+		dir Direction
+	}
+	CurveNodeArg struct {
+		quad Quadrant
+	}
+)
 
 func (n FullNodeArg) isNodeArg()  {}
 func (n HalfNodeArg) isNodeArg()  {}
