@@ -20,7 +20,7 @@ class Editor():
 		self.graph = Graph()
 		piece = self.graph.init()
 
-		# State variables, along with mode and item
+		# State variables, along with mode and Object
 		self.keys = []
 		self.selected = GraphSpace(piece.pos, piece)
 
@@ -86,7 +86,7 @@ class Editor():
 		
 		lists = DepLists(self.ui, options)
 		self.editMode = lists.var_a
-		self.item = lists.var_b
+		self.Object = lists.var_b
 		lists.pack(anchor='w')
 
 	def initTilemap(self):
@@ -119,21 +119,21 @@ class Editor():
 	def doAction(self):
 		if self.mode == Editor.MODE_SELECT:
 			if KEY_SPACE in self.keys:
-				self.placeItem()
+				self.placeObject()
 			elif KEY_BACKSPACE in self.keys:
-				self.deleteItem()
+				self.deleteObject()
 			elif KEY_TAB in self.keys:
 				self.scroll()
 			elif KEY_SHIFT in self.keys:
 				self.modifySelected()
 			
 	# handle arrows pressed (creates curves)
-	def placeItem(self):
+	def placeObject(self):
 		if self.editMode == 'Tracks':
 			self._placeTrack()
 
 	def _placeTrack(self):
-		if self.item == 'Rail':
+		if self.Object == 'Rail':
 			if self._canAddRail(self.selected):
 				nullnodeDirs = self.selected.piece.validNewTrackDirections()
 				direction, curve = self._getRailConfig(nullnodeDirs)
@@ -144,10 +144,10 @@ class Editor():
 					else:
 						self.graph.addTrackFromPiece(self.piece, direction)
 
-		elif self.item == '3-way':
+		elif self.Object == '3-way':
 			pass
 
-	def deleteItem(self):
+	def deleteObject(self):
 		pass
 
 	def scroll(self):
@@ -251,9 +251,9 @@ class Cell():
 
 	CELL_BORDER = Color().fromHex("#000000")
 
-	def __init__(self, master, col, row, size, items):
+	def __init__(self, master, col, row, size, Objects):
 		self.master = master
-		self.items = items
+		self.Objects = Objects
 		self.col = col
 		self.row = row
 		self.size = size
@@ -264,9 +264,9 @@ class Cell():
 		# # TODO: send this as a parameter
 		# point = self.anchor + Point(self.x, -self.y)
 		if self.master != None:
-			if not self.items:
+			if not self.Objects:
 				fill = Cell.EMPTY_COLOR_BG
-			elif len(self.items) == 1 and type(self.items[0]) is Node:
+			elif len(self.Objects) == 1 and type(self.Objects[0]) is Node:
 				fill = Cell.NODE_COLOR_BG
 			else:
 				fill = Cell.TRACK_COLOR_BG

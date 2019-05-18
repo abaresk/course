@@ -10,4 +10,5 @@
             type, Orientation
         }
 
- Adding Items and Enemies to the Course
+ Adding Objects and Enemies to the Course
+    - Write AddEnemy and AddItem methods for World

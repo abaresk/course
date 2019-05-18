@@ -5,7 +5,7 @@ type Piece interface {
 	getNext(Direction) (Piece, bool)
 	setNext(Piece, Direction) bool
 	ports(Point) []Point
-	Item
+	Object
 }
 
 // Link p1 to p2 via dir

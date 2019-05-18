@@ -153,7 +153,7 @@ func TestTrackOverlap(t *testing.T) {
 	w.AddTrack(Point{0, 0}, Horizontal)
 	w.AddTrack(Point{0, 0}, Vertical)
 
-	if len(w.pmap.get(Point{0, 0})) != 2 {
+	if len(*w.pmap.get(Point{0, 0})) != 2 {
 		t.Fatalf("Should be able to overlap 2 tracks w/ opposite orientation")
 	}
 
@@ -199,7 +199,7 @@ func TestAddRemovePieces(t *testing.T) {
 		t.Fatalf("Tracks didn't unbind to node")
 	}
 
-	if anyItemsInNodeTerritory(w, Point{0, 0}, &FullNode{}) || len(w.pmap.pieces) > 2 {
+	if anyObjectsInNodeTerritory(w, Point{0, 0}, &FullNode{}) || len(w.pmap.pieces) > 2 {
 		t.Fatalf("Node and NodeBody's weren't all removed from pointmap")
 	}
 }
@@ -241,7 +241,7 @@ func TestCurveCircle(t *testing.T) {
 	}
 
 	w.AddNode(Point{-3, 3}, CurveNodeArg{Four}) // invalid; should not be placed (something's already there)
-	if len(w.pmap.get(Point{-3, 3})) != 1 {
+	if len(*w.pmap.get(Point{-3, 3})) != 1 {
 		t.Fatalf("The above node should not have been allowed to be placed")
 	}
 
@@ -319,9 +319,9 @@ func TestHalfNodeLoop(t *testing.T) {
 	}
 }
 
-func anyItemsInNodeTerritory(w *World, point Point, n Node) bool {
+func anyObjectsInNodeTerritory(w *World, point Point, n Node) bool {
 	for _, t := range n.nodeTerritory(point) {
-		if len(w.pmap.get(t)) > 0 {
+		if len(*w.pmap.get(t)) > 0 {
 			return true
 		}
 	}

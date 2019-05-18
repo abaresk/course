@@ -112,10 +112,10 @@ class Graph():
 		pass
 
 	def _findEdge(self, point, node1, node2):
-		for item in self.pointmap[point]:
-			if type(item) is Edge:
-				if (item.node1 == node1 and item.node2 == node2) or (item.node1 == node2 and item.node2 == node1):
-					return item
+		for Object in self.pointmap[point]:
+			if type(Object) is Edge:
+				if (Object.node1 == node1 and Object.node2 == node2) or (Object.node1 == node2 and Object.node2 == node1):
+					return Object
 		return None
 
 	def _relinkEdge(self, oldedge, newedge):
@@ -168,7 +168,7 @@ class Graph():
 		parent = node.getParent()
 		direction = vectorDir(parent.pos, node.pos)
 
-		if not any([type(item) is NullNode for item in self.pointmap[node.pos.nthPoint(direction, -1)]]):
+		if not any([type(Object) is NullNode for Object in self.pointmap[node.pos.nthPoint(direction, -1)]]):
 			return False
 
 		adjNode = [type(n) is NullNode for n in self.pointmap[node.pos.nthPoint(direction, -1)]][0]
@@ -216,7 +216,7 @@ class Graph():
 		'''
 		if type(node) is NullNode:
 			return self._NullNodeInvasion(oldpos, newpos)
-		return any([type(item) is not NullNode for point in node.allPoints() for item in self.pointmap[point]])
+		return any([type(Object) is not NullNode for point in node.allPoints() for Object in self.pointmap[point]])
 
 	# A NullNode can overlap with one other type of node. But it cannot
 	# overlap with that same node the next turn
@@ -280,9 +280,9 @@ class Graph():
 		return output
 
 	def _removeEdgeWith(self, point, node):
-		for item in self.pointmap[point]:
-			if type(item) is Edge and node in item.bridge:
-				self.pointmap[point].remove(item)
+		for Object in self.pointmap[point]:
+			if type(Object) is Edge and node in Object.bridge:
+				self.pointmap[point].remove(Object)
 
 	# Create a halo of NullNodes around a node
 	def _addNullNodes(self, node):

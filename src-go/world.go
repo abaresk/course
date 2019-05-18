@@ -4,11 +4,8 @@ to the Piece and Pointmap objects.
 */
 package course
 
-// TODO: Think about what operations you want World to do.
-// Then what state info would it need to hold to accomplish that?
-
 /*
-Stuff World should do:
+World should:
 	- Add Piece at a specified point (check for potential merges)
 		* Check for validity. If invalid, do nothing
 	- Get Piece at a point at a specific layer (default layer == 0)
@@ -46,9 +43,9 @@ func (w *World) AddTrack(point Point, orient Orientation) {
 	w.makeMerges(t, point)
 }
 
-func (w *World) Get(point Point, layer int) Item {
-	var out Item
-	l := w.pmap.get(point)
+func (w *World) Get(point Point, layer int) Object {
+	var out Object
+	l := *w.pmap.get(point)
 	if layer >= 0 && layer < len(l) {
 		out = l[layer]
 	}
@@ -58,8 +55,8 @@ func (w *World) Get(point Point, layer int) Item {
 // Used to get a piece at a point and layer. Returns nil
 // if there is no *Piece located there
 func (w *World) GetPiece(point Point, layer int) Piece {
-	item := w.Get(point, layer)
-	piece, _ := item.(Piece)
+	obj := w.Get(point, layer)
+	piece, _ := obj.(Piece)
 	return piece
 }
 
@@ -83,7 +80,7 @@ func (w *World) Delete(point Point, layer int) {
 // There should be no Pieces in the node's territory
 func (w *World) validNodePoint(n Node, point Point) bool {
 	for _, p := range n.nodeTerritory(point) {
-		if len(w.pmap.get(p)) != 0 {
+		if len(w.pmap.getObjectPieces(p)) != 0 {
 			return false
 		}
 	}
@@ -97,7 +94,7 @@ func (w *World) validNodePoint(n Node, point Point) bool {
 // 	──|──
 //	  |
 func (w *World) validTrackPoint(point Point, orient Orientation) bool {
-	l := w.pmap.get(point)
+	l := w.pmap.getObjectPieces(point)
 	if len(l) == 0 {
 		return true
 	}
@@ -125,16 +122,16 @@ Merge checking:
 func (w *World) makeMerges(p Piece, point Point) {
 	ports := p.ports(point)
 	for _, port := range ports {
-		l := w.pmap.get(port)
+		l := *w.pmap.get(port)
 	Loop:
-		for _, item := range l {
-			switch item.(type) {
+		for _, obj := range l {
+			switch obj.(type) {
 			case *NodeBody:
-				if merged := w.mergeNodeBody(p, item.(*NodeBody), point); merged {
+				if merged := w.mergeNodeBody(p, obj.(*NodeBody), point); merged {
 					break Loop
 				}
 			case Piece:
-				if merged := w.mergePiece(p, item.(Piece), point); merged {
+				if merged := w.mergePiece(p, obj.(Piece), point); merged {
 					break Loop
 				}
 			}
@@ -152,9 +149,9 @@ func (w *World) mergeNodeBody(p Piece, b *NodeBody, center Point) bool {
 }
 
 func (w *World) mergePiece(p, portPiece Piece, center Point) bool {
-	itemCenter := w.pmap.find(portPiece)
+	objCenter := w.pmap.find(portPiece)
 	track, isTrack := portPiece.(*Track)
-	if dir, aligned := itemCenter.DirTo(center); aligned && (!isTrack || track.orient == Dir2Orient[dir]) {
+	if dir, aligned := objCenter.DirTo(center); aligned && (!isTrack || track.orient == Dir2Orient[dir]) {
 		linkPieces(portPiece, p, dir)
 		return true
 	}
