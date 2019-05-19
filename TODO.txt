@@ -1,14 +1,23 @@
- Different Node Pieces
-    - World should call AddNode(point, NodeArg)
-        Type        Orientation
-        -----------------------
-        full        n/a
-        half        Up | Left | Down | Right    (Direction)
-        curve       one | two | three | four    (Quadrant)
+✔   Different Node Pieces
+        - World should call AddNode(point, NodeArg)
+            Type        Orientation
+            -----------------------
+            full        n/a
+            half        Up | Left | Down | Right    (Direction)
+            curve       one | two | three | four    (Quadrant)
 
-        - type NodeArg struct {
-            type, Orientation
-        }
+            - type NodeArg struct {
+                type, Orientation
+            }
 
- Adding Objects and Enemies to the Course
-    - Write AddEnemy and AddItem methods for World
+✔   Adding Objects and Enemies to the Course
+        - Write AddEnemy and AddItem methods for World
+
+    Item Special Cases:
+        - longer than just 1 block
+        - linked items (portals)
+
+    More Node Information
+        - default connections
+        - settability
+        * All combinations should be valid

@@ -1,20 +1,13 @@
 package course
 
-type TrackItemArg interface {
-	isTrackItemArg()
-}
+type Signal int
 
-type PortalArg struct {
-	dest *Portal
-}
-type TrackSwitchArg struct {
-	pair Node
-}
-type SludgeArg struct{}
-
-func (a PortalArg) isTrackItemArg()      {}
-func (a TrackSwitchArg) isTrackItemArg() {}
-func (a SludgeArg) isTrackItemArg()      {}
+const (
+	SignalRed Signal = iota
+	SignalBlue
+	SignalGreen
+	SignalYellow
+)
 
 type TrackItem interface {
 	isTrackItem()
@@ -26,7 +19,7 @@ type Portal struct {
 }
 
 type TrackSwitch struct {
-	pair Node
+	sig Signal
 }
 
 type Sludge struct{}
@@ -41,7 +34,7 @@ func NewTrackItem(arg TrackItemArg) TrackItem {
 	case PortalArg:
 		return &Portal{arg.(PortalArg).dest}
 	case TrackSwitchArg:
-		return &TrackSwitch{arg.(TrackSwitchArg).pair}
+		return &TrackSwitch{arg.(TrackSwitchArg).sig}
 	case SludgeArg:
 		return &Sludge{}
 	}

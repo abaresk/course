@@ -20,7 +20,86 @@ func (w *World) Init() {
 	w.pmap.init()
 }
 
-func (w *World) AddNode(point Point, arg NodeArg) {
+func (w *World) AddPiece(point Point, arg PieceArg) {
+	switch arg.(type) {
+	case TrackArg:
+		w.addTrack(point, arg.(TrackArg))
+	case FullNodeArg, HalfNodeArg, CurveNodeArg:
+		w.addNode(point, arg)
+	}
+}
+
+func (w *World) AddItem(point Point, arg ItemArg) {
+	var item Object
+	if !w.validItemPoint(point) {
+		return
+	}
+	switch arg.(type) {
+	case EnemyArg:
+		item = NewEnemy(arg.(EnemyArg))
+	case TrackItemArg:
+		item = NewTrackItem(arg.(TrackItemArg))
+	case PowerUpArg:
+		item = NewPowerUp(arg.(PowerUpArg))
+	}
+	w.pmap.add(point, item)
+}
+
+func (w *World) Get(point Point, layer int) Object {
+	var out Object
+	l := *w.pmap.get(point)
+	if layer >= 0 && layer < len(l) {
+		out = l[layer]
+	}
+	return out
+}
+
+func (w *World) Delete(point Point, layer int) {
+	obj := w.Get(point, layer)
+	switch obj.(type) {
+	case Piece: // not NodeBody's
+		w.deletePiece(point, layer)
+	case TrackItem, EnemyPart, PowerUp:
+		// works for now b/c these objects don't require destructors yet
+		// TODO: in future, add Destroy method to interface?
+		w.deleteObject(point, layer)
+	}
+}
+
+func (w *World) deleteObject(point Point, layer int) {
+	obj := w.Get(point, layer)
+	if obj != nil {
+		w.pmap.remove(obj)
+	}
+}
+
+func (w *World) deletePiece(point Point, layer int) {
+	piece := w.Get(point, layer).(Piece)
+	if piece == nil {
+		return
+	}
+	// Delete all NodeBody's
+	if n, ok := piece.(Node); ok {
+		for _, t := range n.nodeTerritory(point) {
+			w.deleteObject(t, 0)
+		}
+	}
+	w.deleteObject(point, layer)
+	erase(piece)
+
+	// If no more Piece's, delete all Object's at that point
+	if l := w.pmap.getObjectPieces(point); len(l) == 0 {
+		for i := 0; i < w.pmap.get(point).Len(); i++ {
+			w.deleteObject(point, i)
+		}
+	}
+}
+
+// func (w *World) AddLinkedItems(p1, p2 Point, arg LinkedItemArg) {
+
+// }
+
+func (w *World) addNode(point Point, arg PieceArg) {
 	var n Node
 	if n = NewNode(arg); n == nil || !w.validNodePoint(n, point) {
 		return
@@ -34,71 +113,13 @@ func (w *World) AddNode(point Point, arg NodeArg) {
 	w.makeMerges(n, point)
 }
 
-func (w *World) AddTrack(point Point, orient Orientation) {
-	if !w.validTrackPoint(point, orient) {
+func (w *World) addTrack(point Point, arg TrackArg) {
+	if !w.validTrackPoint(point, arg.orient) {
 		return
 	}
-	t := NewTrack(orient)
+	t := NewTrack(arg.orient)
 	w.pmap.add(point, t)
 	w.makeMerges(t, point)
-}
-
-func (w *World) AddEnemy(point Point, arg EnemyArg) {
-	if !w.validItemPoint(point) {
-		return
-	}
-	e := NewEnemy(arg)
-	w.pmap.add(point, e)
-}
-
-func (w *World) AddTrackItem(point Point, arg TrackItemArg) {
-	if !w.validItemPoint(point) {
-		return
-	}
-	i := NewTrackItem(arg)
-	w.pmap.add(point, i)
-}
-
-func (w *World) AddPowerUp(point Point, arg PowerUpArg) {
-	if !w.validItemPoint(point) {
-		return
-	}
-	i := NewPowerUp(arg)
-	w.pmap.add(point, i)
-}
-
-func (w *World) Get(point Point, layer int) Object {
-	var out Object
-	l := *w.pmap.get(point)
-	if layer >= 0 && layer < len(l) {
-		out = l[layer]
-	}
-	return out
-}
-
-// Used to get a piece at a point and layer. Returns nil
-// if there is no *Piece located there
-func (w *World) GetPiece(point Point, layer int) Piece {
-	obj := w.Get(point, layer)
-	piece, _ := obj.(Piece)
-	return piece
-}
-
-// You can only delete Pieces (not NodeBody's)
-func (w *World) Delete(point Point, layer int) {
-	var piece Piece
-	if piece = w.GetPiece(point, layer); piece == nil {
-		return
-	}
-
-	// Delete all NodeBody's
-	if _, ok := piece.(Node); ok {
-		for _, t := range piece.(Node).nodeTerritory(point) {
-			w.pmap.remove(w.Get(t, 0))
-		}
-	}
-	w.pmap.remove(piece)
-	erase(piece)
 }
 
 // There should be no Pieces in the node's territory

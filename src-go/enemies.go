@@ -1,20 +1,5 @@
 package course
 
-type EnemyArg interface {
-	isEnemyArg()
-}
-
-type ZapperArg struct {
-	next *ZapperPart
-}
-
-type ChristineArg struct {
-	next *ChristinePart
-}
-
-func (e ZapperArg) isEnemyArg()    {}
-func (e ChristineArg) isEnemyArg() {}
-
 // implemented by *ZapperPart, *ChristinePart, etc.
 type EnemyPart interface {
 	getNext() EnemyPart

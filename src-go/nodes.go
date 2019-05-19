@@ -1,23 +1,5 @@
 package course
 
-type NodeArg interface {
-	isNodeArg()
-}
-
-type (
-	FullNodeArg struct{}
-	HalfNodeArg struct {
-		dir Direction
-	}
-	CurveNodeArg struct {
-		quad Quadrant
-	}
-)
-
-func (n FullNodeArg) isNodeArg()  {}
-func (n HalfNodeArg) isNodeArg()  {}
-func (n CurveNodeArg) isNodeArg() {}
-
 type Node interface {
 	getRadius() int
 	nodeTerritory(Point) []Point
@@ -70,7 +52,6 @@ func (n *CurveNode) nodeTerritory(point Point) []Point {
 	return out
 }
 
-// Helper
 func halfFilter(dx, dy int, dir Direction) bool {
 	switch dir {
 	case Up:

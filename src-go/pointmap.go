@@ -29,13 +29,13 @@ func (h *ObjectHeap) Pop() interface{} {
 
 // bi-directional mapping
 type Pointmap struct {
-	points map[Point]*ObjectHeap
-	pieces map[Object]Point
+	points  map[Point]*ObjectHeap
+	objects map[Object]Point
 }
 
 func (p *Pointmap) init() {
 	p.points = make(map[Point]*ObjectHeap)
-	p.pieces = make(map[Object]Point)
+	p.objects = make(map[Object]Point)
 }
 
 func (p *Pointmap) add(point Point, piece Object) {
@@ -46,13 +46,13 @@ func (p *Pointmap) add(point Point, piece Object) {
 		p.points[point] = h
 	}
 	heap.Push(p.points[point], piece)
-	p.pieces[piece] = point
+	p.objects[piece] = point
 }
 
 func (p *Pointmap) remove(piece Object) {
 	point := p.find(piece)
 	removeObjFromHeap(p.get(point), piece)
-	delete(p.pieces, piece)
+	delete(p.objects, piece)
 }
 
 func (p *Pointmap) get(point Point) *ObjectHeap {
@@ -63,7 +63,7 @@ func (p *Pointmap) get(point Point) *ObjectHeap {
 }
 
 func (p *Pointmap) find(piece Object) Point {
-	return p.pieces[piece]
+	return p.objects[piece]
 }
 
 // Pop until you find the object, then push everything back on

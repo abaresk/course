@@ -210,7 +210,7 @@ func NewTrack(orient Orientation) *Track {
 	return &Track{orient: orient}
 }
 
-func NewNode(arg NodeArg) Node {
+func NewNode(arg PieceArg) Node {
 	switch arg.(type) {
 	case FullNodeArg:
 		return &FullNode{radius: 1}

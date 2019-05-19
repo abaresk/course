@@ -1,17 +1,5 @@
 package course
 
-type PowerUpArg interface {
-	isPowerUpArg()
-}
-
-type (
-	PhaserArg     struct{}
-	TimeSlowerArg struct{}
-)
-
-func (a PhaserArg) isPowerUpArg()     {}
-func (a TimeSlowerArg) isPowerUpArg() {}
-
 type PowerUp interface {
 	isPowerUp()
 	Object
