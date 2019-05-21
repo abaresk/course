@@ -18,14 +18,14 @@ func TestMakeLoop(t *testing.T) {
 	w := new(World)
 	w.Init()
 
-	w.AddPiece(Point{0, 0}, FullNodeArg{})
-	w.AddPiece(Point{2, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{4, 0}, FullNodeArg{})
-	w.AddPiece(Point{4, 2}, TrackArg{Vertical})
-	w.AddPiece(Point{4, 4}, FullNodeArg{})
-	w.AddPiece(Point{2, 4}, TrackArg{Horizontal})
-	w.AddPiece(Point{0, 4}, FullNodeArg{})
-	w.AddPiece(Point{0, 2}, TrackArg{Vertical})
+	w.AddPiece(Point{0, 0}, NewFullNodeClear())
+	w.AddPiece(Point{2, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{4, 0}, NewFullNodeClear())
+	w.AddPiece(Point{4, 2}, NewTrack(Vertical))
+	w.AddPiece(Point{4, 4}, NewFullNodeClear())
+	w.AddPiece(Point{2, 4}, NewTrack(Horizontal))
+	w.AddPiece(Point{0, 4}, NewFullNodeClear())
+	w.AddPiece(Point{0, 2}, NewTrack(Vertical))
 
 	tr1, _ := w.Get(Point{0, 0}, 0).(Piece).getNext(Up)
 	tr2, _ := w.Get(Point{0, 4}, 0).(Piece).getNext(Down)
@@ -50,14 +50,14 @@ func TestMakeLoopBad(t *testing.T) {
 	w := new(World)
 	w.Init()
 
-	w.AddPiece(Point{0, 0}, FullNodeArg{})        // Works!
-	w.AddPiece(Point{1, 0}, TrackArg{Horizontal}) // invalid
-	w.AddPiece(Point{2, 0}, FullNodeArg{})        // invalid
-	w.AddPiece(Point{2, 1}, TrackArg{Vertical})   // Works!
-	w.AddPiece(Point{2, 2}, FullNodeArg{})        // invalid
-	w.AddPiece(Point{1, 2}, TrackArg{Horizontal}) // Works!
-	w.AddPiece(Point{0, 2}, FullNodeArg{})        // invalid
-	w.AddPiece(Point{1, 1}, TrackArg{Vertical})   // invalid
+	w.AddPiece(Point{0, 0}, NewFullNodeClear())   // Works!
+	w.AddPiece(Point{1, 0}, NewTrack(Horizontal)) // invalid
+	w.AddPiece(Point{2, 0}, NewFullNodeClear())   // invalid
+	w.AddPiece(Point{2, 1}, NewTrack(Vertical))   // Works!
+	w.AddPiece(Point{2, 2}, NewFullNodeClear())   // invalid
+	w.AddPiece(Point{1, 2}, NewTrack(Horizontal)) // Works!
+	w.AddPiece(Point{0, 2}, NewFullNodeClear())   // invalid
+	w.AddPiece(Point{1, 1}, NewTrack(Vertical))   // invalid
 
 	if len(w.pmap.objects) != 11 {
 		t.Fatalf("Erroneous objects should be ignored")
@@ -80,12 +80,12 @@ func TestNodeChain(t *testing.T) {
 	w := new(World)
 	w.Init()
 
-	w.AddPiece(Point{0, 0}, FullNodeArg{}) // 4
-	w.AddPiece(Point{6, 3}, FullNodeArg{}) // 3
-	w.AddPiece(Point{3, 0}, FullNodeArg{}) // 5
-	w.AddPiece(Point{3, 3}, FullNodeArg{}) // 2
-	w.AddPiece(Point{0, 3}, FullNodeArg{}) // 1
-	w.AddPiece(Point{6, 0}, FullNodeArg{}) // 6
+	w.AddPiece(Point{0, 0}, NewFullNodeClear()) // 4
+	w.AddPiece(Point{6, 3}, NewFullNodeClear()) // 3
+	w.AddPiece(Point{3, 0}, NewFullNodeClear()) // 5
+	w.AddPiece(Point{3, 3}, NewFullNodeClear()) // 2
+	w.AddPiece(Point{0, 3}, NewFullNodeClear()) // 1
+	w.AddPiece(Point{6, 0}, NewFullNodeClear()) // 6
 
 	// try to get at 5 from each side
 	n4 := w.Get(Point{0, 0}, 0).(Piece)
@@ -118,9 +118,9 @@ func TestMisalignedNodes(t *testing.T) {
 	w := new(World)
 	w.Init()
 
-	w.AddPiece(Point{0, 0}, FullNodeArg{})
-	w.AddPiece(Point{3, 0}, FullNodeArg{})
-	w.AddPiece(Point{1, -3}, FullNodeArg{})
+	w.AddPiece(Point{0, 0}, NewFullNodeClear())
+	w.AddPiece(Point{3, 0}, NewFullNodeClear())
+	w.AddPiece(Point{1, -3}, NewFullNodeClear())
 
 	n1 := w.Get(Point{0, 0}, 0).(Piece)
 
@@ -130,7 +130,7 @@ func TestMisalignedNodes(t *testing.T) {
 	if n1 != s2 {
 		t.Fatalf("Nodes should have connected")
 	}
-	for _, n := range w.Get(Point{1, -3}, 0).(Piece).(*FullNode).nexts {
+	for _, n := range w.Get(Point{1, -3}, 0).(FullNodeClear).nexts {
 		if n != nil {
 			t.Fatalf("Misaligned node should not be connected to other nodes")
 		}
@@ -150,23 +150,23 @@ func TestTrackOverlap(t *testing.T) {
 	w := new(World)
 	w.Init()
 
-	w.AddPiece(Point{0, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{0, 0}, TrackArg{Vertical})
+	w.AddPiece(Point{0, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{0, 0}, NewTrack(Vertical))
 
 	if len(*w.pmap.get(Point{0, 0})) != 2 {
 		t.Fatalf("Should be able to overlap 2 tracks w/ opposite orientation")
 	}
 
 	// Connecting vertically
-	w.AddPiece(Point{0, 1}, TrackArg{Vertical})
+	w.AddPiece(Point{0, 1}, NewTrack(Vertical))
 	s1, _ := w.Get(Point{0, 1}, 0).(Piece).getNext(Down)
 
 	if s1.(*Track).orient != Vertical {
 		t.Fatalf("New track merged with wrong track")
 	}
 
-	w.AddPiece(Point{-1, 0}, TrackArg{Vertical})
-	w.AddPiece(Point{-1, 0}, TrackArg{Horizontal})
+	w.AddPiece(Point{-1, 0}, NewTrack(Vertical))
+	w.AddPiece(Point{-1, 0}, NewTrack(Horizontal))
 	s2, _ := w.Get(Point{-1, 0}, 1).(Piece).getNext(Right)
 	if s2.(*Track).orient != Horizontal {
 		t.Fatalf("New track merged with wrong track")
@@ -177,9 +177,9 @@ func TestAddRemovePieces(t *testing.T) {
 	w := new(World)
 	w.Init()
 
-	w.AddPiece(Point{0, 0}, FullNodeArg{})
-	w.AddPiece(Point{2, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{0, 2}, TrackArg{Vertical})
+	w.AddPiece(Point{0, 0}, NewFullNodeClear())
+	w.AddPiece(Point{2, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{0, 2}, NewTrack(Vertical))
 
 	n := w.Get(Point{0, 0}, 0)
 	tr1 := w.Get(Point{2, 0}, 0).(Piece)
@@ -199,7 +199,7 @@ func TestAddRemovePieces(t *testing.T) {
 		t.Fatalf("Tracks didn't unbind to node")
 	}
 
-	if anyObjectsInNodeTerritory(w, Point{0, 0}, &FullNode{}) || len(w.pmap.objects) > 2 {
+	if anyObjectsInNodeTerritory(w, Point{0, 0}, &fullNode{}) || len(w.pmap.objects) > 2 {
 		t.Fatalf("Node and NodeBody's weren't all removed from pointmap")
 	}
 }
@@ -214,9 +214,9 @@ func TestCurveCircle(t *testing.T) {
 	w.Init()
 
 	// Make a circle
-	w.AddPiece(Point{0, 0}, CurveNodeArg{Two})
-	w.AddPiece(Point{-3, 0}, CurveNodeArg{One})
-	w.AddPiece(Point{0, 3}, CurveNodeArg{Three})
+	w.AddPiece(Point{0, 0}, NewCurveNode(Two))
+	w.AddPiece(Point{-3, 0}, NewCurveNode(One))
+	w.AddPiece(Point{0, 3}, NewCurveNode(Three))
 
 	s1 := w.Get(Point{-3, 0}, 0).(Piece)
 	s2 := w.Get(Point{0, 0}, 0).(Piece)
@@ -234,19 +234,19 @@ func TestCurveCircle(t *testing.T) {
 		t.Fatalf("Curves didn't connect properly")
 	}
 
-	w.AddPiece(Point{-3, 3}, CurveNodeArg{Two}) // invalid; it should not merge with either
+	w.AddPiece(Point{-3, 3}, NewCurveNode(Two)) // invalid; it should not merge with either
 	s4 := w.Get(Point{-3, 3}, 0).(Piece)
 	if u, _ := s4.getNext(Up); u != nil {
 		t.Fatalf("This curve should not have connected to anything")
 	}
 
-	w.AddPiece(Point{-3, 3}, CurveNodeArg{Four}) // invalid; should not be placed (something's already there)
+	w.AddPiece(Point{-3, 3}, NewCurveNode(Four)) // invalid; should not be placed (something's already there)
 	if len(*w.pmap.get(Point{-3, 3})) != 1 {
 		t.Fatalf("The above node should not have been allowed to be placed")
 	}
 
 	w.Delete(Point{-3, 3}, 0)
-	w.AddPiece(Point{-3, 3}, CurveNodeArg{Four}) // works!
+	w.AddPiece(Point{-3, 3}, NewCurveNode(Four)) // works!
 	s5 := w.Get(Point{-3, 3}, 0).(Piece)
 	if u, _ := s5.getNext(Down); u != s1 {
 		t.Fatalf("Curves didn't connect properly")
@@ -270,79 +270,78 @@ Create the following:
 	n     n
 	nntttnn
 
-Then delete the HalfNode
+Then delete the halfNode
 */
 func TestHalfNodeLoop(t *testing.T) {
 	w := new(World)
 	w.Init()
 
-	w.AddPiece(Point{3, 5}, TrackArg{Vertical})
-	w.AddPiece(Point{3, 3}, HalfNodeArg{Up})
-	w.AddPiece(Point{0, 3}, CurveNodeArg{Four})
-	w.AddPiece(Point{0, 0}, CurveNodeArg{One})
-	w.AddPiece(Point{2, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{3, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{4, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{6, 0}, CurveNodeArg{Two})
-	w.AddPiece(Point{6, 3}, CurveNodeArg{Three})
+	w.AddPiece(Point{3, 5}, NewTrack(Vertical))
+	w.AddPiece(Point{3, 3}, NewHalfNodeSet(Up, true))
+	w.AddPiece(Point{0, 3}, NewCurveNode(Four))
+	w.AddPiece(Point{0, 0}, NewCurveNode(One))
+	w.AddPiece(Point{2, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{3, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{4, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{6, 0}, NewCurveNode(Two))
+	w.AddPiece(Point{6, 3}, NewCurveNode(Three))
 
 	s1 := w.Get(Point{3, 3}, 0).(Piece)
 	s2 := w.Get(Point{3, 5}, 0).(Piece)
 	s3 := w.Get(Point{0, 3}, 0).(Piece)
 	s4 := w.Get(Point{6, 3}, 0).(Piece)
 	if u, _ := s1.getNext(Up); u != s2 {
-		t.Fatalf("HalfNode didn't connect properly")
+		t.Fatalf("halfNode didn't connect properly")
 	}
 	if u, _ := s2.getNext(Down); u != s1 {
-		t.Fatalf("HalfNode didn't connect properly")
+		t.Fatalf("halfNode didn't connect properly")
 	}
 	if u, _ := s3.getNext(Right); u != s1 {
-		t.Fatalf("HalfNode didn't connect properly")
+		t.Fatalf("halfNode didn't connect properly")
 	}
 	if u, _ := s1.getNext(Left); u != s3 {
-		t.Fatalf("HalfNode didn't connect properly")
+		t.Fatalf("halfNode didn't connect properly")
 	}
 	if u, _ := s1.getNext(Right); u != s4 {
-		t.Fatalf("HalfNode didn't connect properly")
+		t.Fatalf("halfNode didn't connect properly")
 	}
 	if u, _ := s4.getNext(Left); u != s1 {
-		t.Fatalf("HalfNode didn't connect properly")
+		t.Fatalf("halfNode didn't connect properly")
 	}
 
-	// Now remove HalfNode
+	// Now remove halfNode
 	w.Delete(Point{3, 3}, 0)
 	if u, _ := s2.getNext(Down); u != nil {
-		t.Fatalf("HalfNode didn't disconnect properly")
+		t.Fatalf("halfNode didn't disconnect properly")
 	}
 	if len(w.pmap.objects) != 20 {
-		t.Fatalf("HalfNode wasn't removed properly")
+		t.Fatalf("halfNode wasn't removed properly")
 	}
 }
 
 /*
 First create some tracks, then add 1 track switch and 2 linked portals.
 */
-func TestAddItems(t *testing.T) {
+func TestAddObjects(t *testing.T) {
 	w := new(World)
 	w.Init()
 
-	w.AddPiece(Point{0, 0}, HalfNodeArg{Right})
-	w.AddPiece(Point{2, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{3, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{4, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{0, 1}, TrackArg{Vertical})
-	w.AddPiece(Point{0, -1}, TrackArg{Vertical})
+	w.AddPiece(Point{0, 0}, NewHalfNodeSet(Right, true))
+	w.AddPiece(Point{2, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{3, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{4, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{0, 1}, NewTrack(Vertical))
+	w.AddPiece(Point{0, -1}, NewTrack(Vertical))
 
-	w.AddItem(Point{5, 0}, TrackSwitchArg{SignalBlue}) // invalid, do nothing
-	w.AddItem(Point{4, 0}, TrackSwitchArg{SignalBlue}) // valid
+	w.AddObject(Point{5, 0}, NewTrackSwitch(SignalBlue)) // invalid, do nothing
+	w.AddObject(Point{4, 0}, NewTrackSwitch(SignalBlue)) // valid
 
-	w.AddItem(Point{1, 0}, PhaserArg{}) // invalid, do nothing
-	w.AddItem(Point{2, 0}, PhaserArg{})
+	w.AddObject(Point{1, 0}, NewPhaser()) // invalid, do nothing
+	w.AddObject(Point{2, 0}, NewPhaser())
 
 	// Portal -- needs a way to add linked items
 
 	// Create AddLinkedItem(p1, p2 Point, arg)
-
 }
 
 /*
@@ -353,13 +352,13 @@ func TestAddEnemies(t *testing.T) {
 	w := new(World)
 	w.Init()
 
-	w.AddPiece(Point{0, 0}, FullNodeArg{})
-	w.AddPiece(Point{2, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{3, 0}, TrackArg{Horizontal})
-	w.AddPiece(Point{4, 0}, TrackArg{Horizontal})
+	w.AddPiece(Point{0, 0}, NewFullNodeClear())
+	w.AddPiece(Point{2, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{3, 0}, NewTrack(Horizontal))
+	w.AddPiece(Point{4, 0}, NewTrack(Horizontal))
 
-	w.AddItem(Point{0, 0}, ChristineArg{nil})
-	w.AddItem(Point{4, 0}, ZapperArg{nil})
+	w.AddObject(Point{0, 0}, NewChristine(nil))
+	w.AddObject(Point{4, 0}, NewZapper(nil))
 
 	if _, ok := w.Get(Point{0, 0}, 1).(*ChristinePart); !ok {
 		t.Fatalf("Christine car not properly added")

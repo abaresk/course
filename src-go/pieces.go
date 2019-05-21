@@ -1,6 +1,6 @@
 package course
 
-// Piece will be implemented by *Track, *FullNode, *HalfNode, *CurveNode
+// Piece will be implemented by *Track, *fullNode, *halfNode, *CurveNode
 type Piece interface {
 	getNext(Direction) (Piece, bool)
 	setNext(Piece, Direction) bool
@@ -50,15 +50,39 @@ func erase(p Piece) {
 	}
 }
 
-type FullNode struct {
+type fullNode struct {
 	radius int
 	nexts  [4]Piece
 }
 
-type HalfNode struct {
-	radius int
-	dir    Direction
-	nexts  [3]Piece
+type FullNodeClear struct {
+	*fullNode
+}
+
+type FullNodeSet struct {
+	flow Flow
+	*fullNode
+}
+
+type FullNodeSwitched struct {
+	sig Signal
+	FullNodeSet
+}
+
+type halfNode struct {
+	radius    int
+	flowsLeft bool
+	dir       Direction
+	nexts     [3]Piece
+}
+
+type HalfNodeSet struct {
+	*halfNode
+}
+
+type HalfNodeSwitched struct {
+	sig Signal
+	*halfNode
 }
 
 type CurveNode struct {
@@ -72,7 +96,7 @@ type Track struct {
 	nexts  [2]Piece
 }
 
-func (n *FullNode) getNext(dir Direction) (Piece, bool) {
+func (n *fullNode) getNext(dir Direction) (Piece, bool) {
 	if index, ok := n.getIndex(dir); !ok {
 		return nil, false
 	} else {
@@ -80,7 +104,7 @@ func (n *FullNode) getNext(dir Direction) (Piece, bool) {
 	}
 }
 
-func (n *HalfNode) getNext(dir Direction) (Piece, bool) {
+func (n *halfNode) getNext(dir Direction) (Piece, bool) {
 	if index, ok := n.getIndex(dir); !ok {
 		return nil, false
 	} else {
@@ -104,7 +128,7 @@ func (t *Track) getNext(dir Direction) (Piece, bool) {
 	}
 }
 
-func (n *FullNode) setNext(p Piece, dir Direction) bool {
+func (n *fullNode) setNext(p Piece, dir Direction) bool {
 	if index, ok := n.getIndex(dir); !ok {
 		return false
 	} else {
@@ -113,7 +137,7 @@ func (n *FullNode) setNext(p Piece, dir Direction) bool {
 	}
 }
 
-func (n *HalfNode) setNext(p Piece, dir Direction) bool {
+func (n *halfNode) setNext(p Piece, dir Direction) bool {
 	if index, ok := n.getIndex(dir); !ok {
 		return false
 	} else {
@@ -138,7 +162,7 @@ func (t *Track) setNext(p Piece, dir Direction) bool {
 	}
 }
 
-func (n *FullNode) ports(point Point) []Point {
+func (n *fullNode) ports(point Point) []Point {
 	out := []Point{}
 	for dir := Up; dir <= Right; dir++ {
 		out = append(out, point.Add(UnitVector[dir].Scale(n.radius+1)))
@@ -146,7 +170,7 @@ func (n *FullNode) ports(point Point) []Point {
 	return out
 }
 
-func (n *HalfNode) ports(point Point) []Point {
+func (n *halfNode) ports(point Point) []Point {
 	out := []Point{}
 	for i := 0; i < 3; i++ {
 		out = append(out, point.Add(UnitVector[n.dir.Minus(1-i)].Scale(n.radius+1)))
@@ -167,11 +191,11 @@ func (t *Track) ports(point Point) []Point {
 	return []Point{point.Add(v), point.Add(v.Scale(-1))}
 }
 
-func (n *FullNode) getIndex(dir Direction) (int, bool) {
+func (n *fullNode) getIndex(dir Direction) (int, bool) {
 	return int(dir), true
 }
 
-func (n *HalfNode) getIndex(dir Direction) (int, bool) {
+func (n *halfNode) getIndex(dir Direction) (int, bool) {
 	if n.dir == dir.Plus(2) {
 		return 0, false
 	}
@@ -206,18 +230,38 @@ func (t *Track) getIndex(dir Direction) (int, bool) {
 }
 
 // Constructors
-func NewTrack(orient Orientation) *Track {
+func NewTrack(orient Orientation) Piece {
 	return &Track{orient: orient}
 }
 
-func NewNode(arg PieceArg) Node {
-	switch arg.(type) {
-	case FullNodeArg:
-		return &FullNode{radius: 1}
-	case HalfNodeArg:
-		return &HalfNode{radius: 1, dir: arg.(HalfNodeArg).dir}
-	case CurveNodeArg:
-		return &CurveNode{radius: 1, quad: arg.(CurveNodeArg).quad}
-	}
-	return nil
+func newFullNode() *fullNode {
+	return &fullNode{radius: 1}
+}
+
+func newHalfNode(dir Direction, flowsLeft bool) *halfNode {
+	return &halfNode{radius: 1, dir: dir, flowsLeft: flowsLeft}
+}
+
+func NewFullNodeClear() Piece {
+	return FullNodeClear{newFullNode()}
+}
+
+func NewFullNodeSet(flow Flow) Piece {
+	return FullNodeSet{flow, newFullNode()}
+}
+
+func NewFullNodeSwitched(flow Flow, sig Signal) Piece {
+	return FullNodeSwitched{sig, FullNodeSet{flow, newFullNode()}}
+}
+
+func NewHalfNodeSet(dir Direction, flowsLeft bool) Piece {
+	return HalfNodeSet{newHalfNode(dir, flowsLeft)}
+}
+
+func NewHalfNodeSwithced(dir Direction, flowsLeft bool, sig Signal) Piece {
+	return HalfNodeSwitched{sig, newHalfNode(dir, flowsLeft)}
+}
+
+func NewCurveNode(quad Quadrant) Piece {
+	return &CurveNode{radius: 1, quad: quad}
 }

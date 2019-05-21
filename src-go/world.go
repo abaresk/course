@@ -20,29 +20,20 @@ func (w *World) Init() {
 	w.pmap.init()
 }
 
-func (w *World) AddPiece(point Point, arg PieceArg) {
-	switch arg.(type) {
-	case TrackArg:
-		w.addTrack(point, arg.(TrackArg))
-	case FullNodeArg, HalfNodeArg, CurveNodeArg:
-		w.addNode(point, arg)
+func (w *World) AddPiece(point Point, piece Piece) {
+	switch piece.(type) {
+	case *Track:
+		w.addTrack(point, piece.(*Track))
+	case Node:
+		w.addNode(point, piece.(Node))
 	}
 }
 
-func (w *World) AddItem(point Point, arg ItemArg) {
-	var item Object
-	if !w.validItemPoint(point) {
+func (w *World) AddObject(point Point, obj Object) {
+	if obj == nil || !w.validItemPoint(point) {
 		return
 	}
-	switch arg.(type) {
-	case EnemyArg:
-		item = NewEnemy(arg.(EnemyArg))
-	case TrackItemArg:
-		item = NewTrackItem(arg.(TrackItemArg))
-	case PowerUpArg:
-		item = NewPowerUp(arg.(PowerUpArg))
-	}
-	w.pmap.add(point, item)
+	w.pmap.add(point, obj)
 }
 
 func (w *World) Get(point Point, layer int) Object {
@@ -89,8 +80,8 @@ func (w *World) deletePiece(point Point, layer int) {
 
 	// If no more Piece's, delete all Object's at that point
 	if l := w.pmap.getObjectPieces(point); len(l) == 0 {
-		for i := 0; i < w.pmap.get(point).Len(); i++ {
-			w.deleteObject(point, i)
+		for w.pmap.get(point).Len() > 0 {
+			w.deleteObject(point, 0)
 		}
 	}
 }
@@ -99,9 +90,8 @@ func (w *World) deletePiece(point Point, layer int) {
 
 // }
 
-func (w *World) addNode(point Point, arg PieceArg) {
-	var n Node
-	if n = NewNode(arg); n == nil || !w.validNodePoint(n, point) {
+func (w *World) addNode(point Point, n Node) {
+	if n == nil || !w.validNodePoint(n, point) {
 		return
 	}
 	w.pmap.add(point, n)
@@ -113,11 +103,10 @@ func (w *World) addNode(point Point, arg PieceArg) {
 	w.makeMerges(n, point)
 }
 
-func (w *World) addTrack(point Point, arg TrackArg) {
-	if !w.validTrackPoint(point, arg.orient) {
+func (w *World) addTrack(point Point, t *Track) {
+	if t == nil || !w.validTrackPoint(point, t.orient) {
 		return
 	}
-	t := NewTrack(arg.orient)
 	w.pmap.add(point, t)
 	w.makeMerges(t, point)
 }
@@ -140,15 +129,12 @@ func (w *World) validNodePoint(n Node, point Point) bool {
 //	  |
 func (w *World) validTrackPoint(point Point, orient Orientation) bool {
 	l := w.pmap.getObjectPieces(point)
-	if len(l) == 0 {
-		return true
-	}
 	if len(l) == 1 {
 		if t, ok := l[0].(*Track); ok {
 			return orient != t.orient
 		}
 	}
-	return false
+	return len(l) == 0
 }
 
 // There must be at least 1 Piece in order to place (*Nodebody's don't count)

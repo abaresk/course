@@ -41,8 +41,8 @@ type NodeBody struct {
 	center Piece
 }
 
-func (n *FullNode) isObject()  {}
-func (n *HalfNode) isObject()  {}
+func (n *fullNode) isObject()  {}
+func (n *halfNode) isObject()  {}
 func (n *CurveNode) isObject() {}
 func (t *Track) isObject()     {}
 func (n *NodeBody) isObject()  {}

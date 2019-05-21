@@ -6,11 +6,11 @@ type Node interface {
 	Piece
 }
 
-func (n *FullNode) getRadius() int {
+func (n *fullNode) getRadius() int {
 	return n.radius
 }
 
-func (n *HalfNode) getRadius() int {
+func (n *halfNode) getRadius() int {
 	return n.radius
 }
 
@@ -18,7 +18,7 @@ func (n *CurveNode) getRadius() int {
 	return n.radius
 }
 
-func (n *FullNode) nodeTerritory(point Point) []Point {
+func (n *fullNode) nodeTerritory(point Point) []Point {
 	out := []Point{}
 	for x := point.x - n.radius; x <= point.x+n.radius; x++ {
 		for y := point.y - n.radius; y <= point.y+n.radius; y++ {
@@ -28,7 +28,7 @@ func (n *FullNode) nodeTerritory(point Point) []Point {
 	return out
 }
 
-func (n *HalfNode) nodeTerritory(point Point) []Point {
+func (n *halfNode) nodeTerritory(point Point) []Point {
 	out := []Point{}
 	for dx := -n.radius; dx <= n.radius; dx++ {
 		for dy := -n.radius; dy <= n.radius; dy++ {

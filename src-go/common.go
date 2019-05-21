@@ -6,6 +6,8 @@ type (
 	Orientation int
 	Quadrant    int
 	PieceType   int
+	Signal      int
+	Flow        int
 )
 
 const (
@@ -20,6 +22,19 @@ const (
 	Left
 	Down
 	Right
+)
+
+const (
+	SignalRed Signal = iota
+	SignalBlue
+	SignalGreen
+	SignalYellow
+)
+
+const (
+	FlowI        Flow = iota // first/third Quadrant
+	FlowStraight             // criss-cross
+	FlowII                   // second/fourth Quadrant
 )
 
 func (dir Direction) Plus(c int) Direction {

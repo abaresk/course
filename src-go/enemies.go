@@ -41,12 +41,9 @@ func (e *ChristinePart) setNext(p EnemyPart) bool {
 }
 
 // Constructor
-func NewEnemy(arg EnemyArg) EnemyPart {
-	switch arg.(type) {
-	case ZapperArg:
-		return &ZapperPart{arg.(ZapperArg).next}
-	case ChristineArg:
-		return &ChristinePart{arg.(ChristineArg).next}
-	}
-	return nil
+func NewZapper(next *ZapperPart) *ZapperPart {
+	return &ZapperPart{next}
+}
+func NewChristine(next *ChristinePart) *ChristinePart {
+	return &ChristinePart{next}
 }
