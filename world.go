@@ -15,6 +15,12 @@ type World struct {
 	pmap *Pointmap
 }
 
+func NewCourse() *World {
+	w := new(World)
+	w.Init()
+	return w
+}
+
 func (w *World) Init() {
 	w.pmap = new(Pointmap)
 	w.pmap.init()
